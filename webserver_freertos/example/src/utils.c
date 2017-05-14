@@ -61,6 +61,8 @@ int32_t getPos(uint8_t mNum)
 
 void setDiv(uint8_t mNum, uint8_t e, uint8_t dir, uint32_t div)
 {
+	if(div > 0x186a)
+		div = 0x186a;
 	if(mNum == 0){
 		//TMotCtrlW0 mc0;
 		//TMotCtrlW1 mc1;

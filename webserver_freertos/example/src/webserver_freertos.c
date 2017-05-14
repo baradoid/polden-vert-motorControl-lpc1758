@@ -318,7 +318,8 @@ static void vUartctrl(void *pvParameters)
 
 	for(int i=0; i<motorCount; i++){
 		mst[i].speedZadIPS = 0;
-		mst[i].state = idle;
+		mst[i].speedCurIPS = 0;
+		mst[i].state = constSpeed;
 		mst[i].posZadI = 0;
 		motorPositionReset(i);
 	}
@@ -326,6 +327,10 @@ static void vUartctrl(void *pvParameters)
 
 	TMotorData *pMd;
 	int32_t deltaPos;
+	float devProc;
+	uint32_t l;
+
+
 
 	for(int i=0; ;i++){
 		//sprintf(msg, "data %d", i);
@@ -336,41 +341,104 @@ static void vUartctrl(void *pvParameters)
 			pMd = &(mst[mi]);
 
 			switch(pMd->state){
-				case idle:
-					motorDisable(mi);
-
-					break;
+//				case idle:
+//					motorDisable(mi);
+//					pMd->speedCurIPS = 0;
+//
+//					break;
 				case calcParams:
 					deltaPos = pMd->posZadI - getPos(mi);
 
-					if(abs(deltaPos) > 200){
-						pMd->state = speedConst;
-						if(deltaPos > 0){
-							pMd->dir = DIR_UP;
-							DEBUGOUT("state idle -> speedConst DIR_UP\r\n");
-						}
-						else{
-							pMd->dir = DIR_DOWN;
-							DEBUGOUT("state idle -> speedConst DIR_DOWN\r\n");
+					if((abs(deltaPos) > 200) || (pMd->speedCurIPS >0)){
+						pMd->speedDeviation = ( pMd->speedZadIPS - pMd->speedCurIPS);
+						pMd->state = speedDeviation;
+
+						pMd->startDeviationTime =  xTaskGetTickCount();
+						pMd->DeviationTime = abs(pMd->speedDeviation*1000/maxAccelIPS2);
+						pMd->speedOnStartDeviatonIPS = pMd->speedCurIPS;
+						DEBUGOUT("vCur %d vZad %d vDev %d tDevms %d dp %d\r\n", pMd->speedCurIPS, pMd->speedZadIPS, pMd->speedDeviation, pMd->DeviationTime, deltaPos);
+						if((pMd->speedCurIPS == 0)){
+							if(deltaPos > 0){
+								pMd->dir = DIR_UP;
+								DEBUGOUT("state idle -> speedConst DIR_UP\r\n");
+							}
+							else{
+								pMd->dir = DIR_DOWN;
+								DEBUGOUT("state idle -> speedConst DIR_DOWN\r\n");
+							}
 						}
 					}
 
 					break;
 
-				case speedUp: break;
+				case speedDeviation:
+					l = (uint32_t)((pMd->speedCurIPS/(float)(2*maxAccelIPS2))*pMd->speedCurIPS);
+					uint32_t d;
+					if(pMd->dir == DIR_UP)
+						d= abs(pMd->posZadI - getPos(mi));
+					else
+						d= abs(getPos(mi)-pMd->posZadI);
+					if((l >= d)&& (pMd->speedDeviation>0)){
+						DEBUGOUT("l >pz-cp  l=%d, d=%d\r\n", l, d);
+						pMd->state = calcParams;
+						DEBUGOUT("state speedDeviation -> calcParams \r\n");
+						pMd->speedZadIPS = 0;
+						break;
 
-				case speedConst:
-					if((pMd->posZadI - getPos(mi)) < 100){
-						pMd->state = idle;
-						DEBUGOUT("state speedConst -> idle div\r\n");
 					}
-					uint32_t div = SYS_CLOCK/pMd->speedZadIPS;
+					devProc = (xTaskGetTickCount()-pMd->startDeviationTime)/(float)pMd->DeviationTime;
 
+
+					pMd->speedCurIPS =pMd->speedOnStartDeviatonIPS + pMd->speedDeviation*devProc;
+
+					uint32_t div;
+					if(pMd->speedCurIPS > 1600){
+						div = SYS_CLOCK/pMd->speedCurIPS;
+					}
+					else{
+						div = SYS_CLOCK/1600;
+					}
 					setDiv(mi, MOT_ENA, pMd->dir, div);
+
+					DEBUGOUT("devProc %f cs %d l=%d, d=%d\r\n", devProc, pMd->speedCurIPS, l, d);
+
+					if(devProc>= 1.){
+						pMd->state = constSpeed;
+					}
+
 					break;
 
-				case speedDown:
+				case constSpeed:
+					if(pMd->speedCurIPS == 0){
+						motorDisable(mi);
+					}
+					else{
+						l = (uint32_t)((pMd->speedCurIPS/(float)(2*maxAccelIPS2))*pMd->speedCurIPS);
+						uint32_t d;
+						if(pMd->dir == DIR_UP)
+							d= abs(pMd->posZadI - getPos(mi));
+						else
+							d= abs(getPos(mi)-pMd->posZadI);
+						if((l >= d)&& (pMd->speedDeviation>0)){
+							DEBUGOUT("l >pz-cp  l=%d, d=%d\r\n", l, d);
+							pMd->state = calcParams;
+							DEBUGOUT("state speedDeviation -> calcParams \r\n");
+							pMd->speedZadIPS = 0;
+							break;
 
+						}
+
+
+//						if((pMd->posZadI - getPos(mi)) < 100){
+//							pMd->state = calcParams;
+//							DEBUGOUT("state speedConst -> calcParams\r\n");
+//							pMd->speedZadIPS = 0;
+//						}
+					}
+
+					//uint32_t div = SYS_CLOCK/pMd->speedZadIPS;
+
+					//setDiv(mi, MOT_ENA, pMd->dir, div);
 					break;
 			}
 
