@@ -321,6 +321,7 @@ static void vUartctrl(void *pvParameters)
 		mst[i].speedCurIPS = 0;
 		mst[i].state = constSpeed;
 		mst[i].posZadI = 0;
+		mst[i].bReverse = 0;
 		motorPositionReset(i);
 	}
 
@@ -349,15 +350,21 @@ static void vUartctrl(void *pvParameters)
 				case calcParams:
 					deltaPos = pMd->posZadI - getPos(mi);
 
-					if((abs(deltaPos) > 200) || (pMd->speedCurIPS >0)){
-						pMd->speedDeviation = ( pMd->speedZadIPS - pMd->speedCurIPS);
-						pMd->state = speedDeviation;
-
-						pMd->startDeviationTime =  xTaskGetTickCount();
-						pMd->DeviationTime = abs(pMd->speedDeviation*1000/maxAccelIPS2);
-						pMd->speedOnStartDeviatonIPS = pMd->speedCurIPS;
-						DEBUGOUT("vCur %d vZad %d vDev %d tDevms %d dp %d\r\n", pMd->speedCurIPS, pMd->speedZadIPS, pMd->speedDeviation, pMd->DeviationTime, deltaPos);
-						if((pMd->speedCurIPS == 0)){
+					if(abs(deltaPos) > 2000){
+						if((pMd->speedCurIPS != pMd->speedZadIPS)){
+							if( ((pMd->dir == DIR_UP) && (deltaPos<0)) || ((pMd->dir == DIR_DOWN) && (deltaPos>0)) ){
+								pMd->speedZadIPS = 0;
+								pMd->bReverse = 1;
+							}
+							else{
+								pMd->bReverse = 0;
+							}
+							//else{
+							//	pMd->speedZadIPS = pMd->speedMaxIPS;
+							//}
+						}
+						else if((pMd->speedCurIPS == 0)){
+							pMd->speedZadIPS = pMd->speedMaxIPS;
 							if(deltaPos > 0){
 								pMd->dir = DIR_UP;
 								DEBUGOUT("state idle -> speedConst DIR_UP\r\n");
@@ -367,7 +374,25 @@ static void vUartctrl(void *pvParameters)
 								DEBUGOUT("state idle -> speedConst DIR_DOWN\r\n");
 							}
 						}
+						if(pMd->speedCurIPS != pMd->speedZadIPS){
+							pMd->speedDeviation = ( pMd->speedZadIPS - pMd->speedCurIPS);
+							pMd->state = speedDeviation;
+
+							pMd->startDeviationTime =  xTaskGetTickCount();
+							pMd->DeviationTime = abs(pMd->speedDeviation*1000/maxAccelIPS2);
+							pMd->speedOnStartDeviatonIPS = pMd->speedCurIPS;
+							DEBUGOUT("vCur %d vZad %d vDev %d tDevms %d dp %d\r\n", pMd->speedCurIPS, pMd->speedZadIPS, pMd->speedDeviation, pMd->DeviationTime, deltaPos);
+						}
+						else{
+							pMd->state = constSpeed;
+							DEBUGOUT("vCur %d vZad %d dp %d equals!\r\n", pMd->speedCurIPS, pMd->speedZadIPS,  deltaPos);
+						}
 					}
+					else{
+						//motorDisable(mi);
+
+					}
+
 
 					break;
 
@@ -409,8 +434,13 @@ static void vUartctrl(void *pvParameters)
 					break;
 
 				case constSpeed:
+
 					if(pMd->speedCurIPS == 0){
 						motorDisable(mi);
+						if(pMd->bReverse){
+							pMd->state = calcParams;
+							pMd->bReverse = 0;
+						}
 					}
 					else{
 						l = (uint32_t)((pMd->speedCurIPS/(float)(2*maxAccelIPS2))*pMd->speedCurIPS);
@@ -419,21 +449,15 @@ static void vUartctrl(void *pvParameters)
 							d= abs(pMd->posZadI - getPos(mi));
 						else
 							d= abs(getPos(mi)-pMd->posZadI);
-						if((l >= d)&& (pMd->speedDeviation>0)){
+						if(l >= d){
 							DEBUGOUT("l >pz-cp  l=%d, d=%d\r\n", l, d);
 							pMd->state = calcParams;
-							DEBUGOUT("state speedDeviation -> calcParams \r\n");
+							DEBUGOUT("state constSpeed -> calcParams \r\n");
 							pMd->speedZadIPS = 0;
 							break;
 
 						}
 
-
-//						if((pMd->posZadI - getPos(mi)) < 100){
-//							pMd->state = calcParams;
-//							DEBUGOUT("state speedConst -> calcParams\r\n");
-//							pMd->speedZadIPS = 0;
-//						}
 					}
 
 					//uint32_t div = SYS_CLOCK/pMd->speedZadIPS;
@@ -501,7 +525,7 @@ static void vUartctrl(void *pvParameters)
 						if(pos != mst[motNum].posZadI){
 							mst[motNum].state = calcParams;
 							mst[motNum].posZadI=((pos*maxHeightImp)/1000);
-							DEBUGOUT("pos %x %x \r\n", pos, mst[motNum].posZadI );
+							DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
 						}
 					}
 				}
@@ -510,8 +534,8 @@ static void vUartctrl(void *pvParameters)
 					p++;
 					velocity = atoi(p);
 					if((velocity>=100)&& (velocity<=4000) && (motNum!=-1)){
-						mst[motNum].speedZadIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
-						DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedZadIPS,  SYS_CLOCK/mst[motNum].speedZadIPS);
+						mst[motNum].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
+						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
 					}
 				}
 				DEBUGOUT("\r\n", inputStr);

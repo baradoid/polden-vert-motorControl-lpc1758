@@ -7,6 +7,7 @@ typedef enum {
 #define SYS_CLOCK 10000000
 #define motorCount 10
 typedef struct{
+	uint32_t speedMaxIPS; //max
 	uint32_t speedZadIPS;
 	uint32_t speedCurIPS;
 	uint32_t posZadI;
@@ -17,6 +18,8 @@ typedef struct{
 	int32_t speedDeviation;
 	uint32_t startDeviationTime;
 	uint32_t DeviationTime;
+
+	uint8_t bReverse;
 
 } TMotorData;
 
