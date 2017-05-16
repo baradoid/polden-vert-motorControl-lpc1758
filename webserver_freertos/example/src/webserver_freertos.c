@@ -319,10 +319,21 @@ static void vUartctrl(void *pvParameters)
 	for(int i=0; i<motorCount; i++){
 		mst[i].speedZadIPS = 0;
 		mst[i].speedCurIPS = 0;
-		mst[i].state = constSpeed;
 		mst[i].posZadI = 0;
 		mst[i].bReverse = 0;
 		motorPositionReset(i);
+		if(getKoncState(i) == true){
+			mst[i].state = constSpeed;
+
+
+		}
+		else{
+			mst[i].state = seekKonc;
+			DEBUGOUT("%d seek for Konc \r\n", i);
+
+		}
+
+
 	}
 
 
@@ -332,8 +343,22 @@ static void vUartctrl(void *pvParameters)
 	uint32_t l;
 
 
+//	while(getKoncState(0) == false){;
+//		DEBUGOUT("%d seeking for Konc \r\n", 0);
+//		uint32_t div = SYS_CLOCK/4000;
+//		setDiv(0, MOT_ENA, DIR_DOWN, div);
+//	}
 
+	bool bKoncState;
+	bool bKs;
 	for(int i=0; ;i++){
+
+
+		if(getKoncState(0) != bKoncState){
+			bKoncState = getKoncState(0);
+			DEBUGOUT("koncState %d!\r\n", bKoncState);
+		}
+
 		//sprintf(msg, "data %d", i);
 		//strcpy(msg, "hello\r\n");
 		//Chip_UART_SendBlocking(LPC_UART0, msg, sizeof(msg));
@@ -342,6 +367,23 @@ static void vUartctrl(void *pvParameters)
 			pMd = &(mst[mi]);
 
 			switch(pMd->state){
+
+			case seekKonc:
+				bKs = getKoncState(mi);
+
+				if(bKs == false){
+					pMd->dir = DIR_DOWN;
+					uint32_t div = SYS_CLOCK/4000;
+					setDiv(mi, MOT_ENA, pMd->dir, div);
+					pMd->state = seekKonc;
+				}
+				else{
+					setDiv(mi, MOT_DIS, pMd->dir, div);
+					pMd->state = constSpeed;
+					DEBUGOUT("konc  found -> const speed\r\n");
+				}
+
+				break;
 //				case idle:
 //					motorDisable(mi);
 //					pMd->speedCurIPS = 0;

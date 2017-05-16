@@ -2,6 +2,7 @@
 #include "stand.h"
 #include "board.h"
 
+
 //uint8_t RxBuf[RXBUFSIZE];// the receiver buffer.
 //uint32_t RxHead = 0; // the circular buffer index
 //uint32_t RxTail = 0;
@@ -161,4 +162,17 @@ void motorEnable(uint8_t mNum)
 	}
 }
 
+bool getKoncState(uint8_t mNum)
+{
+	bool ret = false;
+	switch(mNum){
+	case 0:
+		ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 0);
+		break;
+	case 1:
+		ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
+		break;
+	}
+	return ret;
+}
 
