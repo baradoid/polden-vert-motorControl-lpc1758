@@ -275,6 +275,8 @@ static SSP_ConfigFormat ssp_format;
 //
 //}
 
+
+
 typedef struct{
 	int32_t pos;
 	uint32_t time;
@@ -284,6 +286,130 @@ typedef struct{
 #define POS_CMD_RB_SIZE 256	/* Receive */
 RINGBUFF_T posCmdRB;
 uint8_t posCmdBuff[POS_CMD_RB_SIZE*sizeof(TPosCmd)];
+
+void fillCustom1()
+{
+	TPosCmd pc;
+	pc.time = 500;
+	pc.pos = 1000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 5000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 10000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.time = 20000;
+	/*pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 25000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 35000;	RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 50000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 65000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 80000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 95000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.pos = 110000; RingBuffer_Insert(&posCmdRB, &pc);*/
+	pc.pos = 496000; RingBuffer_Insert(&posCmdRB, &pc);
+//	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
+//	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
+//	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
+}
+
+
+#define posMMtoPosImp(a) (50+(a*600));
+#define addCmdToRb(a) pc.pos = posMMtoPosImp(a); RingBuffer_Insert(&posCmdRB, &pc)
+
+void fillCustom2()
+{
+	TPosCmd pc;
+	pc.time = 100;
+//	addCmdToRb(1);
+//	addCmdToRb(2);
+//	addCmdToRb(3);
+//	addCmdToRb(4);
+//	addCmdToRb(5);
+//	addCmdToRb(7);
+//	addCmdToRb(11);
+//	addCmdToRb(15);
+	addCmdToRb(20);
+	addCmdToRb(21);
+	addCmdToRb(25);
+	addCmdToRb(30);
+	addCmdToRb(38);
+	addCmdToRb(47);
+	addCmdToRb(58);
+	addCmdToRb(71);
+	addCmdToRb(84);
+	addCmdToRb(99);
+	addCmdToRb(116);
+	addCmdToRb(132);
+	addCmdToRb(150);
+	addCmdToRb(169);
+	addCmdToRb(188);
+	addCmdToRb(207);
+	addCmdToRb(227);
+	addCmdToRb(246);
+	addCmdToRb(266);
+	addCmdToRb(285);
+	addCmdToRb(304);
+	addCmdToRb(322);
+	addCmdToRb(339);
+	addCmdToRb(356);
+	addCmdToRb(372);
+	addCmdToRb(387);
+	addCmdToRb(400);
+	addCmdToRb(413);
+	addCmdToRb(423);
+	addCmdToRb(432);
+	addCmdToRb(440);
+	addCmdToRb(445);
+	addCmdToRb(448);
+	addCmdToRb(450);
+	addCmdToRb(451);
+	addCmdToRb(451);
+	addCmdToRb(449);
+	addCmdToRb(449);
+	addCmdToRb(449);
+	addCmdToRb(450);
+	addCmdToRb(451);
+	addCmdToRb(450);
+	addCmdToRb(448);
+	addCmdToRb(444);
+	addCmdToRb(438);
+	addCmdToRb(431);
+	addCmdToRb(421);
+	addCmdToRb(411);
+	addCmdToRb(398);
+	addCmdToRb(384);
+	addCmdToRb(370);
+	addCmdToRb(354);
+	addCmdToRb(337);
+	addCmdToRb(319);
+	addCmdToRb(301);
+	addCmdToRb(282);
+	addCmdToRb(263);
+	addCmdToRb(244);
+	addCmdToRb(224);
+	addCmdToRb(205);
+	addCmdToRb(185);
+	addCmdToRb(166);
+	addCmdToRb(147);
+	addCmdToRb(129);
+	addCmdToRb(112);
+	addCmdToRb(96);
+	addCmdToRb(82);
+	addCmdToRb(68);
+	addCmdToRb(56);
+	addCmdToRb(45);
+	addCmdToRb(36);
+	addCmdToRb(29);
+	addCmdToRb(24);
+	addCmdToRb(21);
+	addCmdToRb(20);
+//	addCmdToRb(15);
+//	addCmdToRb(11);
+//	addCmdToRb(7);
+//	addCmdToRb(5);
+//	addCmdToRb(4);
+//	addCmdToRb(3);
+//	addCmdToRb(2);
+//	addCmdToRb(1);
+}
 
 //void uartInit();
 TMotorData mst[motorCount];
@@ -390,11 +516,15 @@ static void vUartctrl(void *pvParameters)
 //		setDiv(0, MOT_ENA, DIR_DOWN, div);
 //	}
 
+	uint32_t idlePauseStart = 0;
 	bool bKoncState[motorCount];
 	bool bKs;
 	int32_t pos;
 	uint32_t div;
 	TPosCmd posCmd;
+
+	pc.time = 4000;
+	addCmdToRb(20);
 	for(int i=0; ;i++){
 		//sprintf(msg, "data %d", i);
 		//strcpy(msg, "hello\r\n");
@@ -409,16 +539,25 @@ static void vUartctrl(void *pvParameters)
 			}
 			switch(pMd->state){
 			case idle:
+				if(idlePauseStart == 0){
+					idlePauseStart = xTaskGetTickCount();
+				}
+				else if((xTaskGetTickCount() -idlePauseStart)> 1000){
+					idlePauseStart = 0;
 
-				if(RingBuffer_Pop(&posCmdRB, &posCmd)){
-					DEBUGOUT("idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", posCmd.pos, posCmd.time);
-					pMd->state = constSpeedTimeCtrl;
-					pMd->posZadI = posCmd.pos;
-					int32_t deltaPos = pMd->posZadI - getPos(mi);
-					pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
-					pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
+					if(RingBuffer_Pop(&posCmdRB, &posCmd)){
+						DEBUGOUT("idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", posCmd.pos, posCmd.time);
+						pMd->state = constSpeedTimeCtrl;
+						pMd->posZadI = posCmd.pos;
+						int32_t deltaPos = pMd->posZadI - getPos(mi);
+						pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
+						pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
 
-					//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
+						//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
+					}
+					else{
+						fillCustom2();
+					}
 				}
 				break;
 
@@ -437,24 +576,8 @@ static void vUartctrl(void *pvParameters)
 					pMd->state = idle;
 					DEBUGOUT("konc  found -> idle\r\n");
 
-						pc.time = 500;
-						pc.pos = 1000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 5000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 10000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.time = 20000;
-						/*pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 25000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 35000;	RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 50000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 65000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 80000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 95000; RingBuffer_Insert(&posCmdRB, &pc);
-						pc.pos = 110000; RingBuffer_Insert(&posCmdRB, &pc);*/
-						pc.pos = 496000; RingBuffer_Insert(&posCmdRB, &pc);
-					//	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
-					//	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
-					//	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
+					//fillCustom1();
+
 
 
 				}
@@ -465,128 +588,134 @@ static void vUartctrl(void *pvParameters)
 //					pMd->speedCurIPS = 0;
 //
 //					break;
-				case calcParams:
-					deltaPos = pMd->posZadI - getPos(mi);
+//				case calcParams:
+//					deltaPos = pMd->posZadI - getPos(mi);
+//
+//					if(abs(deltaPos) > 2000){
+//						if((pMd->speedCurIPS != pMd->speedZadIPS)){
+//							if( ((pMd->dir == DIR_UP) && (deltaPos<0)) || ((pMd->dir == DIR_DOWN) && (deltaPos>0)) ){
+//								pMd->speedZadIPS = 0;
+//								pMd->bReverse = 1;
+//							}
+//							else{
+//								pMd->bReverse = 0;
+//							}
+//							//else{
+//							//	pMd->speedZadIPS = pMd->speedMaxIPS;
+//							//}
+//						}
+//						else if((pMd->speedCurIPS == 0)){
+//							pMd->speedZadIPS = pMd->speedMaxIPS;
+//							if(deltaPos > 0){
+//								pMd->dir = DIR_UP;
+//								DEBUGOUT("state idle -> speedConst DIR_UP\r\n");
+//							}
+//							else{
+//								pMd->dir = DIR_DOWN;
+//								DEBUGOUT("state idle -> speedConst DIR_DOWN\r\n");
+//							}
+//						}
+//						if(pMd->speedCurIPS != pMd->speedZadIPS){
+//							pMd->speedDeviation = ( pMd->speedZadIPS - pMd->speedCurIPS);
+//							pMd->state = speedDeviation;
+//
+//							pMd->startDeviationTime =  xTaskGetTickCount();
+//							pMd->DeviationTime = abs(pMd->speedDeviation*1000/maxAccelIPS2);
+//							pMd->speedOnStartDeviatonIPS = pMd->speedCurIPS;
+//							DEBUGOUT("vCur %d vZad %d vDev %d tDevms %d dp %d\r\n", pMd->speedCurIPS, pMd->speedZadIPS, pMd->speedDeviation, pMd->DeviationTime, deltaPos);
+//						}
+//						else{
+//							pMd->state = constSpeed;
+//							DEBUGOUT("vCur %d vZad %d dp %d equals!\r\n", pMd->speedCurIPS, pMd->speedZadIPS,  deltaPos);
+//						}
+//					}
+//					else{
+//						//motorDisable(mi);
+//
+//					}
+//
+//
+//					break;
 
-					if(abs(deltaPos) > 2000){
-						if((pMd->speedCurIPS != pMd->speedZadIPS)){
-							if( ((pMd->dir == DIR_UP) && (deltaPos<0)) || ((pMd->dir == DIR_DOWN) && (deltaPos>0)) ){
-								pMd->speedZadIPS = 0;
-								pMd->bReverse = 1;
-							}
-							else{
-								pMd->bReverse = 0;
-							}
-							//else{
-							//	pMd->speedZadIPS = pMd->speedMaxIPS;
-							//}
-						}
-						else if((pMd->speedCurIPS == 0)){
-							pMd->speedZadIPS = pMd->speedMaxIPS;
-							if(deltaPos > 0){
-								pMd->dir = DIR_UP;
-								DEBUGOUT("state idle -> speedConst DIR_UP\r\n");
-							}
-							else{
-								pMd->dir = DIR_DOWN;
-								DEBUGOUT("state idle -> speedConst DIR_DOWN\r\n");
-							}
-						}
-						if(pMd->speedCurIPS != pMd->speedZadIPS){
-							pMd->speedDeviation = ( pMd->speedZadIPS - pMd->speedCurIPS);
-							pMd->state = speedDeviation;
+//				case speedDeviation:
+//					l = (uint32_t)((pMd->speedCurIPS/(float)(2*maxAccelIPS2))*pMd->speedCurIPS);
+//					uint32_t d;
+//					if(pMd->dir == DIR_UP)
+//						d= abs(pMd->posZadI - getPos(mi));
+//					else
+//						d= abs(getPos(mi)-pMd->posZadI);
+//					if((l >= d)&& (pMd->speedDeviation>0)){
+//						DEBUGOUT("l >pz-cp  l=%d, d=%d\r\n", l, d);
+//						pMd->state = calcParams;
+//						DEBUGOUT("state speedDeviation -> calcParams \r\n");
+//						pMd->speedZadIPS = 0;
+//						break;
+//
+//					}
+//					devProc = (xTaskGetTickCount()-pMd->startDeviationTime)/(float)pMd->DeviationTime;
+//
+//
+//					pMd->speedCurIPS =pMd->speedOnStartDeviatonIPS + pMd->speedDeviation*devProc;
+//
+//					if(pMd->speedCurIPS > 1600){
+//						div = SYS_CLOCK/pMd->speedCurIPS;
+//					}
+//					else{
+//						div = SYS_CLOCK/1600;
+//					}
+//					setDiv(mi, MOT_ENA, pMd->dir, div);
+//
+//					DEBUGOUT("devProc %f cs %d l=%d, d=%d\r\n", devProc, pMd->speedCurIPS, l, d);
+//
+//					if(devProc>= 1.){
+//						pMd->state = constSpeed;
+//					}
+//
+//					break;
 
-							pMd->startDeviationTime =  xTaskGetTickCount();
-							pMd->DeviationTime = abs(pMd->speedDeviation*1000/maxAccelIPS2);
-							pMd->speedOnStartDeviatonIPS = pMd->speedCurIPS;
-							DEBUGOUT("vCur %d vZad %d vDev %d tDevms %d dp %d\r\n", pMd->speedCurIPS, pMd->speedZadIPS, pMd->speedDeviation, pMd->DeviationTime, deltaPos);
-						}
-						else{
-							pMd->state = constSpeed;
-							DEBUGOUT("vCur %d vZad %d dp %d equals!\r\n", pMd->speedCurIPS, pMd->speedZadIPS,  deltaPos);
-						}
-					}
-					else{
-						//motorDisable(mi);
-
-					}
-
-
-					break;
-
-				case speedDeviation:
-					l = (uint32_t)((pMd->speedCurIPS/(float)(2*maxAccelIPS2))*pMd->speedCurIPS);
-					uint32_t d;
-					if(pMd->dir == DIR_UP)
-						d= abs(pMd->posZadI - getPos(mi));
-					else
-						d= abs(getPos(mi)-pMd->posZadI);
-					if((l >= d)&& (pMd->speedDeviation>0)){
-						DEBUGOUT("l >pz-cp  l=%d, d=%d\r\n", l, d);
-						pMd->state = calcParams;
-						DEBUGOUT("state speedDeviation -> calcParams \r\n");
-						pMd->speedZadIPS = 0;
-						break;
-
-					}
-					devProc = (xTaskGetTickCount()-pMd->startDeviationTime)/(float)pMd->DeviationTime;
-
-
-					pMd->speedCurIPS =pMd->speedOnStartDeviatonIPS + pMd->speedDeviation*devProc;
-
-					if(pMd->speedCurIPS > 1600){
-						div = SYS_CLOCK/pMd->speedCurIPS;
-					}
-					else{
-						div = SYS_CLOCK/1600;
-					}
-					setDiv(mi, MOT_ENA, pMd->dir, div);
-
-					DEBUGOUT("devProc %f cs %d l=%d, d=%d\r\n", devProc, pMd->speedCurIPS, l, d);
-
-					if(devProc>= 1.){
-						pMd->state = constSpeed;
-					}
-
-					break;
-
-				case constSpeed:
-
-					if(pMd->speedCurIPS == 0){
-						motorDisable(mi);
-						if(pMd->bReverse){
-							pMd->state = calcParams;
-							pMd->bReverse = 0;
-						}
-					}
-					else{
-						l = (uint32_t)((pMd->speedCurIPS/(float)(2*maxAccelIPS2))*pMd->speedCurIPS);
-						uint32_t d;
-						if(pMd->dir == DIR_UP)
-							d= abs(pMd->posZadI - getPos(mi));
-						else
-							d= abs(getPos(mi)-pMd->posZadI);
-						if(l >= d){
-							DEBUGOUT("l >pz-cp  l=%d, d=%d\r\n", l, d);
-							pMd->state = calcParams;
-							DEBUGOUT("state constSpeed -> calcParams \r\n");
-							pMd->speedZadIPS = 0;
-							break;
-
-						}
-
-					}
-
-					//uint32_t div = SYS_CLOCK/pMd->speedZadIPS;
-
-					//setDiv(mi, MOT_ENA, pMd->dir, div);
-					break;
+//				case constSpeed:
+//
+//					if(pMd->speedCurIPS == 0){
+//						motorDisable(mi);
+//						if(pMd->bReverse){
+//							pMd->state = calcParams;
+//							pMd->bReverse = 0;
+//						}
+//					}
+//					else{
+//						l = (uint32_t)((pMd->speedCurIPS/(float)(2*maxAccelIPS2))*pMd->speedCurIPS);
+//						uint32_t d;
+//						if(pMd->dir == DIR_UP)
+//							d= abs(pMd->posZadI - getPos(mi));
+//						else
+//							d= abs(getPos(mi)-pMd->posZadI);
+//						if(l >= d){
+//							DEBUGOUT("l >pz-cp  l=%d, d=%d\r\n", l, d);
+//							pMd->state = calcParams;
+//							DEBUGOUT("state constSpeed -> calcParams \r\n");
+//							pMd->speedZadIPS = 0;
+//							break;
+//
+//						}
+//
+//					}
+//
+//					//uint32_t div = SYS_CLOCK/pMd->speedZadIPS;
+//
+//					//setDiv(mi, MOT_ENA, pMd->dir, div);
+//					break;
 
 				case constSpeedTimeCtrl:
 					pos = getPos(mi);
 
 					deltaPos = mst[mi].posZadI - pos;
 					//DEBUGOUT("move to %d pos %d delta %d speed IPS %d\r\n", mst[mi].posZadI, pos, deltaPos, mst[mi].speedZadIPS);
+//					bool borderReached = false;
+//					if(pMd->dir==DIR_UP)
+//						borderReached = (pos>=pMd->posZadI);
+//					else if(pMd->dir==DIR_DOWN)
+//						borderReached = (pos<=pMd->posZadI)
+
 					bool upBorderReached = ((pMd->dir==DIR_UP) && (pos>=pMd->posZadI));
 					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
 					if(upBorderReached){
@@ -610,8 +739,8 @@ static void vUartctrl(void *pvParameters)
 						}
 						else{
 							DEBUGOUT("constSpeedTimeCtrl no cmd -> idle\r\n");
-							//pMd->state = idle;
-							pMd->state = seekKonc;
+							pMd->state = idle;
+							//pMd->state = seekKonc;
 
 							div = SYS_CLOCK/1000;
 							setDiv(mi, MOT_DIS, pMd->dir, div);
