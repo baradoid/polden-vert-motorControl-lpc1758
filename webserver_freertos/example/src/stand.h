@@ -1,16 +1,16 @@
 #pragma once
 
 typedef enum {
-	seekKonc, calcParams, speedDeviation, constSpeed
+	idle, seekKonc, calcParams, speedDeviation, constSpeed, constSpeedTimeCtrl
 } TMotorState;
 
 #define SYS_CLOCK 10000000
-#define motorCount 10
+#define motorCount 1
 typedef struct{
 	uint32_t speedMaxIPS; //max
 	uint32_t speedZadIPS;
 	uint32_t speedCurIPS;
-	uint32_t posZadI;
+	int32_t posZadI;
 	uint8_t dir;
 	TMotorState state;
 
@@ -23,7 +23,7 @@ typedef struct{
 
 } TMotorData;
 
-#define mmPerRot 10
+#define mmPerRot 5
 #define pulsePerRot 4000
 
 

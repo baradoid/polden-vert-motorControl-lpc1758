@@ -55,6 +55,8 @@ void Chip_SetupOscClockingCustom(void)
 		Chip_Clock_DisablePLL(SYSCTL_MAIN_PLL, SYSCTL_PLL_ENABLE);
 	}
 
+
+	Chip_Clock_SetCrystalRangeHi();
 	/* Enable the crystal */
 	if (!Chip_Clock_IsCrystalEnabled())
 		Chip_Clock_EnableCrystal();

@@ -52,6 +52,7 @@
 #include "lpc_phy.h"/* For the PHY monitor support */
 #include "stand.h"
 #include "utils.h"
+#include "ring_buffer.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -274,8 +275,17 @@ static SSP_ConfigFormat ssp_format;
 //
 //}
 
+typedef struct{
+	int32_t pos;
+	uint32_t time;
+} TPosCmd;
 
-void uartInit();
+/* Transmit and receive ring buffers */
+#define POS_CMD_RB_SIZE 256	/* Receive */
+RINGBUFF_T posCmdRB;
+uint8_t posCmdBuff[POS_CMD_RB_SIZE*sizeof(TPosCmd)];
+
+//void uartInit();
 TMotorData mst[motorCount];
 static void vUartctrl(void *pvParameters)
 {
@@ -300,6 +310,16 @@ static void vUartctrl(void *pvParameters)
 //	mc1.ena = 1;
 //	mc1.wNum = 1;
 
+
+
+	//TPosCmd posCmdRB[100];
+	//int32_t posCmdRbHead = 0;
+	//int32_t posCmdRbTail = 0;
+	/* Before using the ring buffers, initialize them using the ring
+	   buffer init function */
+	RingBuffer_Init(&posCmdRB, posCmdBuff, sizeof(TPosCmd), POS_CMD_RB_SIZE);
+
+
 	char msg[200];
 
 	strcpy(msg, "hello\r\n");
@@ -323,7 +343,7 @@ static void vUartctrl(void *pvParameters)
 		mst[i].bReverse = 0;
 		motorPositionReset(i);
 		if(getKoncState(i) == true){
-			mst[i].state = constSpeed;
+			mst[i].state = seekKonc;//idle;
 
 
 		}
@@ -335,6 +355,27 @@ static void vUartctrl(void *pvParameters)
 
 
 	}
+
+
+	TPosCmd pc;
+
+	//	pc.time = 500;
+	//	pc.pos = 1000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	pc.pos = 5000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	pc.pos = 10000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	pc.time = 1000;
+	//	pc.pos = 20000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	pc.pos = 30000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	pc.pos = 80000;	RingBuffer_Insert(&posCmdRB, &pc);
+	//	pc.pos = 160000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 240000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 320000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 400000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 480000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 560000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
 
 
 	TMotorData *pMd;
@@ -349,38 +390,73 @@ static void vUartctrl(void *pvParameters)
 //		setDiv(0, MOT_ENA, DIR_DOWN, div);
 //	}
 
-	bool bKoncState;
+	bool bKoncState[motorCount];
 	bool bKs;
+	int32_t pos;
+	uint32_t div;
+	TPosCmd posCmd;
 	for(int i=0; ;i++){
-
-
-		if(getKoncState(0) != bKoncState){
-			bKoncState = getKoncState(0);
-			DEBUGOUT("koncState %d!\r\n", bKoncState);
-		}
-
 		//sprintf(msg, "data %d", i);
 		//strcpy(msg, "hello\r\n");
 		//Chip_UART_SendBlocking(LPC_UART0, msg, sizeof(msg));
 
 		for(int mi=0; mi<motorCount; mi++){
 			pMd = &(mst[mi]);
-
+			bKs = getKoncState(mi);
+			if(bKoncState[mi] != bKs){
+				bKoncState[mi] = bKs;
+				DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
+			}
 			switch(pMd->state){
+			case idle:
+
+				if(RingBuffer_Pop(&posCmdRB, &posCmd)){
+					DEBUGOUT("idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", posCmd.pos, posCmd.time);
+					pMd->state = constSpeedTimeCtrl;
+					pMd->posZadI = posCmd.pos;
+					int32_t deltaPos = pMd->posZadI - getPos(mi);
+					pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
+					pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
+
+					//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
+				}
+				break;
 
 			case seekKonc:
-				bKs = getKoncState(mi);
+				//bKs = getKoncState(mi);
 
 				if(bKs == false){
 					pMd->dir = DIR_DOWN;
-					uint32_t div = SYS_CLOCK/4000;
+					div = SYS_CLOCK/12000;
 					setDiv(mi, MOT_ENA, pMd->dir, div);
 					pMd->state = seekKonc;
 				}
 				else{
 					setDiv(mi, MOT_DIS, pMd->dir, div);
-					pMd->state = constSpeed;
-					DEBUGOUT("konc  found -> const speed\r\n");
+					motorPositionReset(mi);
+					pMd->state = idle;
+					DEBUGOUT("konc  found -> idle\r\n");
+
+						pc.time = 500;
+						pc.pos = 1000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 5000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 10000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.time = 20000;
+						/*pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 25000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 35000;	RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 50000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 65000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 80000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 95000; RingBuffer_Insert(&posCmdRB, &pc);
+						pc.pos = 110000; RingBuffer_Insert(&posCmdRB, &pc);*/
+						pc.pos = 496000; RingBuffer_Insert(&posCmdRB, &pc);
+					//	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
+					//	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
+					//	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
+
+
 				}
 
 				break;
@@ -458,7 +534,6 @@ static void vUartctrl(void *pvParameters)
 
 					pMd->speedCurIPS =pMd->speedOnStartDeviatonIPS + pMd->speedDeviation*devProc;
 
-					uint32_t div;
 					if(pMd->speedCurIPS > 1600){
 						div = SYS_CLOCK/pMd->speedCurIPS;
 					}
@@ -506,6 +581,51 @@ static void vUartctrl(void *pvParameters)
 
 					//setDiv(mi, MOT_ENA, pMd->dir, div);
 					break;
+
+				case constSpeedTimeCtrl:
+					pos = getPos(mi);
+
+					deltaPos = mst[mi].posZadI - pos;
+					//DEBUGOUT("move to %d pos %d delta %d speed IPS %d\r\n", mst[mi].posZadI, pos, deltaPos, mst[mi].speedZadIPS);
+					bool upBorderReached = ((pMd->dir==DIR_UP) && (pos>=pMd->posZadI));
+					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
+					if(upBorderReached){
+
+						DEBUGOUT("upBorder!\r\n");
+					}
+					if(downBorderReached){
+						DEBUGOUT("downBorder!\r\n");
+					}
+
+					if(upBorderReached || downBorderReached){
+						if(RingBuffer_Pop(&posCmdRB, &posCmd)){
+							DEBUGOUT("constSpeedTimeCtrl new cmd p%d t%d\r\n", posCmd.pos, posCmd.time);
+							pMd->state = constSpeedTimeCtrl;
+							pMd->posZadI = posCmd.pos;
+							int32_t deltaPos = pMd->posZadI - getPos(mi);
+							pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
+							pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
+
+							//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
+						}
+						else{
+							DEBUGOUT("constSpeedTimeCtrl no cmd -> idle\r\n");
+							//pMd->state = idle;
+							pMd->state = seekKonc;
+
+							div = SYS_CLOCK/1000;
+							setDiv(mi, MOT_DIS, pMd->dir, div);
+						}
+					}
+
+					else{
+						//DEBUGOUT("constSpeedTimeCtrl p:%d pz:%d pd:%d\r\n", pos, pMd->posZadI, pMd->dir);
+						pMd->state = constSpeedTimeCtrl;
+						div = SYS_CLOCK/pMd->speedZadIPS;
+						setDiv(mi, MOT_ENA, pMd->dir, div);
+
+					}
+					break;
 			}
 
 		}
@@ -546,18 +666,22 @@ static void vUartctrl(void *pvParameters)
 			prompt = DEBUGIN();
 			inputStr[inputStrInd++] = prompt;
 			if ((prompt == '\n') || (inputStrInd == recvBufLen )){
+				bool bPosInited = false;
+				bool bTimeInited = false;
+				bool bVelocityInited = false;
+				uint32_t time;
 				inputStr[inputStrInd] = 0;
-				DEBUGOUT("string recvd %s", inputStr);
+				//DEBUGOUT("string recvd %s", inputStr);
 				inputStrInd = 0;
 				uint8_t motNum = -1;
-				uint16_t pos = 0;		//procents*10
+				int32_t pos = 0;		//procents*10
 				uint16_t velocity = 0; //mm per sec
 				if(inputStr[0] == 'S'){
 					motNum = atoi(&(inputStr[1]));
 					if(!((motNum>=0) && (motNum<10))){
 						motNum = -1;
 					}
-					DEBUGOUT("mn %x \r\n", motNum);
+					//DEBUGOUT("mn %x \r\n", motNum);
 				}
 				char *p = strchr(inputStr, 'p');
 				if(p != NULL){
@@ -565,9 +689,11 @@ static void vUartctrl(void *pvParameters)
 					pos = atoi(p);
 					if((pos>=0)&& (pos<=1000) && (motNum!=-1)){
 						if(pos != mst[motNum].posZadI){
-							mst[motNum].state = calcParams;
-							mst[motNum].posZadI=((pos*maxHeightImp)/1000);
-							DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
+
+							//mst[motNum].posZadI=((pos*maxHeightImp)/1000);
+							pos=((pos*maxHeightImp)/1000);
+							//DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
+							bPosInited = true;
 						}
 					}
 				}
@@ -578,9 +704,27 @@ static void vUartctrl(void *pvParameters)
 					if((velocity>=100)&& (velocity<=4000) && (motNum!=-1)){
 						mst[motNum].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
 						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
+						bVelocityInited = true;
 					}
 				}
-				DEBUGOUT("\r\n", inputStr);
+				p = strchr(inputStr, 't');
+				if(p != NULL){
+					p++;
+					time = atoi(p);
+					if((time>0)&& (time<4000) && (motNum!=-1)){
+						mst[motNum].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
+						DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
+						bTimeInited = true;
+					}
+				}
+				//DEBUGOUT("\r\n", inputStr);
+				if(bTimeInited && bPosInited){
+					TPosCmd pc;
+					pc.time = time;
+					pc.pos = pos;
+					RingBuffer_Insert(&posCmdRB, &pc);
+					DEBUGOUT("putCmd in RB p%d t%d\r\n", pc.pos, pc.time);
+				}
 			}
 		}
 
