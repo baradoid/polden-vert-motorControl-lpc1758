@@ -21,6 +21,10 @@ typedef struct{
 
 	uint8_t bReverse;
 
+	uint32_t startCmdProcessTime;
+	uint32_t cmdEndProcessTime;
+
+
 } TMotorData;
 
 #define mmPerRot 5
@@ -35,6 +39,7 @@ typedef struct{
 
 #define maxAccelIPS2 80000
 
+#define DIR_STOP	2
 #define DIR_UP		1
 #define DIR_DOWN 	0
 

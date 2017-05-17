@@ -75,7 +75,7 @@ extern void http_server_netconn_init(void);
 static void prvSetupHardware(void)
 {
 	SystemCoreClockUpdate();
-	Board_Init();
+	//Board_Init();
 
 	/* LED0 is used for the link status, on = PHY cable detected */
 	/* Initial LED state is off to show an unconnected cable state */
@@ -275,15 +275,23 @@ static SSP_ConfigFormat ssp_format;
 //
 //}
 
+/* Transmit and receive ring buffers */
+STATIC RINGBUFF_T txring, uartRxRb;
+
+/* Transmit and receive ring buffer sizes */
+#define UART_RRB_SIZE 8192	/* Receive */
+/* Transmit and receive buffers */
+static uint8_t uartRxBuff[UART_RRB_SIZE];
+
 
 
 typedef struct{
-	int32_t pos;
+	int32_t posImp;
 	uint32_t time;
 } TPosCmd;
 
 /* Transmit and receive ring buffers */
-#define POS_CMD_RB_SIZE 256	/* Receive */
+#define POS_CMD_RB_SIZE 1024	/* Receive */
 RINGBUFF_T posCmdRB;
 uint8_t posCmdBuff[POS_CMD_RB_SIZE*sizeof(TPosCmd)];
 
@@ -291,10 +299,10 @@ void fillCustom1()
 {
 	TPosCmd pc;
 	pc.time = 500;
-	pc.pos = 1000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 5000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 10000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.posImp = 1000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.posImp = 5000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.posImp = 10000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.posImp = 15000; RingBuffer_Insert(&posCmdRB, &pc);
 	pc.time = 20000;
 	/*pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
 	pc.pos = 25000; RingBuffer_Insert(&posCmdRB, &pc);
@@ -304,7 +312,7 @@ void fillCustom1()
 	pc.pos = 80000; RingBuffer_Insert(&posCmdRB, &pc);
 	pc.pos = 95000; RingBuffer_Insert(&posCmdRB, &pc);
 	pc.pos = 110000; RingBuffer_Insert(&posCmdRB, &pc);*/
-	pc.pos = 496000; RingBuffer_Insert(&posCmdRB, &pc);
+	pc.posImp = 496000; RingBuffer_Insert(&posCmdRB, &pc);
 //	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
 //	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
 //	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
@@ -312,7 +320,7 @@ void fillCustom1()
 
 
 #define posMMtoPosImp(a) (50+(a*600));
-#define addCmdToRb(a) pc.pos = posMMtoPosImp(a); RingBuffer_Insert(&posCmdRB, &pc)
+#define addCmdToRb(a) pc.posImp = posMMtoPosImp(a); RingBuffer_Insert(&posCmdRB, &pc)
 
 void fillCustom2()
 {
@@ -411,7 +419,7 @@ void fillCustom2()
 //	addCmdToRb(1);
 }
 
-//void uartInit();
+void uartInit();
 TMotorData mst[motorCount];
 static void vUartctrl(void *pvParameters)
 {
@@ -546,18 +554,24 @@ static void vUartctrl(void *pvParameters)
 					idlePauseStart = 0;
 
 					if(RingBuffer_Pop(&posCmdRB, &posCmd)){
-						DEBUGOUT("idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", posCmd.pos, posCmd.time);
+						DEBUGOUT("idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", posCmd.posImp, posCmd.time);
 						pMd->state = constSpeedTimeCtrl;
-						pMd->posZadI = posCmd.pos;
+						pMd->posZadI = posCmd.posImp;
 						int32_t deltaPos = pMd->posZadI - getPos(mi);
 						pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
-						pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
+						if(deltaPos == 0)
+							pMd->dir = DIR_STOP;
+						else
+							pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
+
+						pMd->startCmdProcessTime = xTaskGetTickCount();
+						pMd->cmdEndProcessTime = pMd->startCmdProcessTime + posCmd.time;
 
 						//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
 					}
-					else{
-						fillCustom2();
-					}
+//					else{
+//						fillCustom2();
+//					}
 				}
 				break;
 
@@ -718,22 +732,42 @@ static void vUartctrl(void *pvParameters)
 
 					bool upBorderReached = ((pMd->dir==DIR_UP) && (pos>=pMd->posZadI));
 					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
+					bool bTimeReached = (xTaskGetTickCount() > pMd->cmdEndProcessTime);
 					if(upBorderReached){
-
 						DEBUGOUT("upBorder!\r\n");
 					}
 					if(downBorderReached){
 						DEBUGOUT("downBorder!\r\n");
 					}
+					if(bTimeReached){
+						DEBUGOUT("bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&posCmdRB));
 
-					if(upBorderReached || downBorderReached){
+					}
+					if(bTimeReached && (pMd->dir != DIR_STOP) &&(upBorderReached == false) && (downBorderReached == false)){
+						DEBUGOUT("going o errorState\r\n");
+						pMd->state = errorState;
+						break;
+					}
+
+
+
+					if( ((pMd->dir != DIR_STOP)&&(upBorderReached || downBorderReached)) ||
+						((pMd->dir == DIR_STOP)&&bTimeReached)
+					){
 						if(RingBuffer_Pop(&posCmdRB, &posCmd)){
-							DEBUGOUT("constSpeedTimeCtrl new cmd p%d t%d\r\n", posCmd.pos, posCmd.time);
+							DEBUGOUT("constSpeedTimeCtrl new cmd p%d t%d\r\n", posCmd.posImp, posCmd.time);
 							pMd->state = constSpeedTimeCtrl;
-							pMd->posZadI = posCmd.pos;
+							pMd->posZadI = posCmd.posImp;
 							int32_t deltaPos = pMd->posZadI - getPos(mi);
 							pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
-							pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
+							if(deltaPos == 0)
+								pMd->dir = DIR_STOP;
+							else
+								pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
+
+							pMd->startCmdProcessTime = xTaskGetTickCount();
+							pMd->cmdEndProcessTime = pMd->startCmdProcessTime + posCmd.time;
+
 
 							//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
 						}
@@ -750,8 +784,13 @@ static void vUartctrl(void *pvParameters)
 					else{
 						//DEBUGOUT("constSpeedTimeCtrl p:%d pz:%d pd:%d\r\n", pos, pMd->posZadI, pMd->dir);
 						pMd->state = constSpeedTimeCtrl;
-						div = SYS_CLOCK/pMd->speedZadIPS;
-						setDiv(mi, MOT_ENA, pMd->dir, div);
+						if(pMd->dir == DIR_STOP){
+							setDiv(mi, MOT_DIS, pMd->dir, div);
+						}
+						else{
+							div = SYS_CLOCK/pMd->speedZadIPS;
+							setDiv(mi, MOT_ENA, pMd->dir, div);
+						}
 
 					}
 					break;
@@ -763,7 +802,9 @@ static void vUartctrl(void *pvParameters)
 //			char s;
 //			if(getPos(0) >=0) s = '+';
 //			else s = '-';
-			DEBUGOUT("iteration %x %x %d %d \r\n", xTaskGetTickCount(), itCnt, getPos(0), (int)((getPos(0)*((float)mmPerRot/pulsePerRot))));
+			DEBUGOUT("it %x %x %d %d  cmdrb:%d\r\n", xTaskGetTickCount(), itCnt,
+													getPos(0), (int)((getPos(0)*((float)mmPerRot/pulsePerRot))),
+													RingBuffer_GetCount(&posCmdRB));
 			itCnt = 0;
 
 			//IOWR_ALTERA_AVALON_PIO_DATA(PIO_LEDS_BASE, 1<<ledNum);
@@ -790,25 +831,37 @@ static void vUartctrl(void *pvParameters)
 		//DEBUGOUT("0x%x 0x%x\r\n" , data0, data1);
 
 
-		while(Chip_UART_ReadLineStatus(DEBUG_UART) & UART_LSR_RDR){
-			char prompt = 0;
-			prompt = DEBUGIN();
+		//while(Chip_UART_ReadLineStatus(DEBUG_UART) & UART_LSR_RDR){
+		char prompt = 0;
+		while(RingBuffer_Pop(&uartRxRb, &prompt)){
+
+			//prompt = DEBUGIN();
 			inputStr[inputStrInd++] = prompt;
 			if ((prompt == '\n') || (inputStrInd == recvBufLen )){
+				bool motNumInited = false;
 				bool bPosInited = false;
 				bool bTimeInited = false;
 				bool bVelocityInited = false;
+
 				uint32_t time;
 				inputStr[inputStrInd] = 0;
 				//DEBUGOUT("string recvd %s", inputStr);
 				inputStrInd = 0;
 				uint8_t motNum = -1;
 				int32_t pos = 0;		//procents*10
+				int32_t posImp = 0;
 				uint16_t velocity = 0; //mm per sec
 				if(inputStr[0] == 'S'){
 					motNum = atoi(&(inputStr[1]));
-					if(!((motNum>=0) && (motNum<10))){
+					if(motNum != 0){
+					//if(!((motNum>=0) && (motNum<10))){
 						motNum = -1;
+						motNumInited = false;
+
+					//}
+					}
+					else{
+						motNumInited = true;
 					}
 					//DEBUGOUT("mn %x \r\n", motNum);
 				}
@@ -816,11 +869,11 @@ static void vUartctrl(void *pvParameters)
 				if(p != NULL){
 					p++;
 					pos = atoi(p);
-					if((pos>=0)&& (pos<=1000) && (motNum!=-1)){
+					if((pos>=0)&& (pos<=1000) && (motNumInited)){
 						if(pos != mst[motNum].posZadI){
 
 							//mst[motNum].posZadI=((pos*maxHeightImp)/1000);
-							pos=((pos*maxHeightImp)/1000);
+							posImp=((pos*maxHeightImp)/1000);
 							//DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
 							bPosInited = true;
 						}
@@ -830,7 +883,7 @@ static void vUartctrl(void *pvParameters)
 				if(p != NULL){
 					p++;
 					velocity = atoi(p);
-					if((velocity>=100)&& (velocity<=4000) && (motNum!=-1)){
+					if((velocity>=100)&& (velocity<=4000) && (motNumInited)){
 						mst[motNum].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
 						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
 						bVelocityInited = true;
@@ -842,17 +895,20 @@ static void vUartctrl(void *pvParameters)
 					time = atoi(p);
 					if((time>0)&& (time<4000) && (motNum!=-1)){
 						mst[motNum].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
-						DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
+						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
 						bTimeInited = true;
 					}
 				}
 				//DEBUGOUT("\r\n", inputStr);
-				if(bTimeInited && bPosInited){
+				if(bTimeInited && bPosInited && motNumInited){
 					TPosCmd pc;
 					pc.time = time;
-					pc.pos = pos;
+					pc.posImp = posImp;
 					RingBuffer_Insert(&posCmdRB, &pc);
-					DEBUGOUT("putCmd in RB p%d t%d\r\n", pc.pos, pc.time);
+					//DEBUGOUT("putCmd in RB p%d p%d t%d\r\n", pos, pc.posImp, pc.time);
+					//DEBUGOUT("pC %d %d pos:%d t:%d\r\n", RingBuffer_GetCount(&posCmdRB), RingBuffer_GetCount(&uartRxRb),
+					//									pos, time);
+
 				}
 			}
 		}
@@ -907,11 +963,34 @@ int main(void)
 }
 
 
+
 void uartInit()
 {
 
+	Chip_UART_Init(LPC_UART0);
+	Chip_UART_SetBaud(LPC_UART0, 115200);
+	Chip_UART_ConfigData(LPC_UART0, UART_LCR_WLEN8 | UART_LCR_SBS_1BIT | UART_LCR_PARITY_DIS);
+
+	/* Enable UART Transmit */
+	Chip_UART_TXEnable(LPC_UART0);
+
 	Chip_IOCON_PinMux(LPC_IOCON, 0, 2, IOCON_MODE_INACT, IOCON_FUNC1);
 	Chip_IOCON_PinMux(LPC_IOCON, 0, 3, IOCON_MODE_INACT, IOCON_FUNC1);
+
+	/* Before using the ring buffers, initialize them using the ring
+	   buffer init function */
+	RingBuffer_Init(&uartRxRb, uartRxBuff, 1, UART_RRB_SIZE);
+
+	/* Reset and enable FIFOs, FIFO trigger level 3 (14 chars) */
+	Chip_UART_SetupFIFOS(LPC_UART0, (UART_FCR_FIFO_EN | UART_FCR_RX_RS |
+							UART_FCR_TX_RS | UART_FCR_TRG_LEV3));
+	/* Enable receive data and line status interrupt */
+	Chip_UART_IntEnable(LPC_UART0, (UART_IER_RBRINT | UART_IER_RLSINT));
+
+
+	/* preemption = 1, sub-priority = 1 */
+	NVIC_SetPriority(UART0_IRQn, 1);
+	NVIC_EnableIRQ(UART0_IRQn);
 
 //	/* Setup UART for 115.2K8N1 */
 //	Chip_UART_Init(LPC_UART0);
@@ -974,6 +1053,18 @@ void initSSP()
 	Chip_IOCON_PinMux(LPC_IOCON, 0, 17, IOCON_MODE_INACT, IOCON_FUNC2);
 	Chip_IOCON_PinMux(LPC_IOCON, 0, 18, IOCON_MODE_INACT, IOCON_FUNC2);
 }
+
+
+
+void UART0_IRQHandler(void)
+{
+	/* Want to handle any errors? Do it here. */
+
+	/* Use default ring buffer handler. Override this with your own
+	   code if you need more capability. */
+	Chip_UART_IRQRBHandler(LPC_UART0, &uartRxRb, NULL);
+}
+
 /**
  * @}
  */
