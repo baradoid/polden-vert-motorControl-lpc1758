@@ -279,7 +279,7 @@ static SSP_ConfigFormat ssp_format;
 STATIC RINGBUFF_T txring, uartRxRb;
 
 /* Transmit and receive ring buffer sizes */
-#define UART_RRB_SIZE 8192	/* Receive */
+#define UART_RRB_SIZE 2048	/* Receive */
 /* Transmit and receive buffers */
 static uint8_t uartRxBuff[UART_RRB_SIZE];
 
@@ -291,7 +291,7 @@ typedef struct{
 } TPosCmd;
 
 /* Transmit and receive ring buffers */
-#define POS_CMD_RB_SIZE 1024	/* Receive */
+#define POS_CMD_RB_SIZE 2048	/* Receive */
 RINGBUFF_T posCmdRB;
 uint8_t posCmdBuff[POS_CMD_RB_SIZE*sizeof(TPosCmd)];
 

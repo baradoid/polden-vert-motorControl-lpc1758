@@ -1,7 +1,7 @@
 #pragma once
 
 typedef enum {
-	idle, seekKonc, calcParams, speedDeviation, constSpeed, constSpeedTimeCtrl
+	idle, errorState, seekKonc, calcParams, speedDeviation, constSpeed, constSpeedTimeCtrl
 } TMotorState;
 
 #define SYS_CLOCK 10000000
