@@ -22,6 +22,7 @@
  *
  * @par
  * Permission to use, copy, modify, and distribute this software and its
+ * documentation is hereby granted, under NXP Semiconductors' and its
  * licensor's relevant copyrights in the software, without fee, provided that it
  * is used in conjunction with NXP Semiconductors microcontrollers.  This
  * copyright, permission, and disclaimer notice must appear in all copies of
