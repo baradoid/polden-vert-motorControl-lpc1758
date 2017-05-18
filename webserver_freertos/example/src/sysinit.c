@@ -56,7 +56,7 @@ void Chip_SetupOscClockingCustom(void)
 	}
 
 
-	Chip_Clock_SetCrystalRangeHi();
+	//Chip_Clock_SetCrystalRangeHi();
 	/* Enable the crystal */
 	if (!Chip_Clock_IsCrystalEnabled())
 		Chip_Clock_EnableCrystal();
@@ -67,15 +67,18 @@ void Chip_SetupOscClockingCustom(void)
 	Chip_Clock_SetMainPLLSource(SYSCTL_PLLCLKSRC_MAINOSC);
 
 	/* FCCO = ((15+1) * 2 * 12MHz) / (0+1) = 384MHz */
+	/* FCCO = ((49+1) * 2 * 12MHz) / (2+1) = 384MHz */
+	/* FCCO = ((11+1) * 2 * 12MHz) / (0+1) = 288MHz */
+
 	/* FCCO = ((8+1) * 2 * 16MHz) / (0+1) = 288MHz */
 	/* FCCO = ((11+1) * 2 * 16MHz) / (0+1) = 384MHz */
-	Chip_Clock_SetupPLL(SYSCTL_MAIN_PLL, 8, 0);
+	Chip_Clock_SetupPLL(SYSCTL_MAIN_PLL, 15, 0);
 
 	Chip_Clock_EnablePLL(SYSCTL_MAIN_PLL, SYSCTL_PLL_ENABLE);
 
 	/* 384MHz / (3+1) = 96MHz */
 	/* 288MHz / (2+1) = 96MHz */
-	Chip_Clock_SetCPUClockDiv(2);
+	Chip_Clock_SetCPUClockDiv(3);
 	while (!Chip_Clock_IsMainPLLLocked()) {} /* Wait for the PLL to Lock */
 
 	Chip_Clock_EnablePLL(SYSCTL_MAIN_PLL, SYSCTL_PLL_CONNECT);
@@ -105,7 +108,7 @@ void Chip_SetupIrcClockingCustom(void)
 	/* 384MHz / (3+1) = 96MHz */
 	/* 288MHz / (2+1) = 96MHz */
 	/* 296MHz / (3+1) = 96MHz */
-	Chip_Clock_SetCPUClockDiv(3);
+	Chip_Clock_SetCPUClockDiv(4);
 	while (!Chip_Clock_IsMainPLLLocked()) {} /* Wait for the PLL to Lock */
 
 	Chip_Clock_EnablePLL(SYSCTL_MAIN_PLL, SYSCTL_PLL_CONNECT);
@@ -140,13 +143,13 @@ void SystemInit(void)
 //	Chip_SystemInit();
 //#else
 //	/* Setup system clocking and muxing */
-//	Board_SystemInit();
+	Board_SystemInit();
 //#endif
 	//Chip_SetupOscClockingCustom();
 
 	/* Setup FLASH access to 4 clocks (100MHz clock) */
 	//Chip_SYSCTL_SetFLASHAccess(FLASHTIM_100MHZ_CPU);
-	Chip_SetupIrcClockingCustom();
+	//Chip_SetupIrcClockingCustom();
 
 }
 
