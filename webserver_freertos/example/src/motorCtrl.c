@@ -36,9 +36,9 @@ typedef struct{
 } TPosCmd;
 
 /* Transmit and receive ring buffers */
-#define POS_CMD_RB_SIZE 2048	/* Receive */
-RINGBUFF_T posCmdRB;
-uint8_t posCmdBuff[POS_CMD_RB_SIZE*sizeof(TPosCmd)];
+#define POS_CMD_RB_SIZE 512	/* Receive */
+RINGBUFF_T posCmdRB[MOTOR_COUNT];
+uint8_t posCmdBuff[MOTOR_COUNT*POS_CMD_RB_SIZE*sizeof(TPosCmd)];
 
 extern RINGBUFF_T uartRxRb;
 
@@ -46,128 +46,133 @@ void fillCustom1()
 {
 	TPosCmd pc;
 	pc.time = 500;
-	pc.posImp = 1000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.posImp = 5000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.posImp = 10000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.posImp = 15000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.time = 20000;
-	/*pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 25000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 35000;	RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 50000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 65000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 80000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 95000; RingBuffer_Insert(&posCmdRB, &pc);
-	pc.pos = 110000; RingBuffer_Insert(&posCmdRB, &pc);*/
-	pc.posImp = 496000; RingBuffer_Insert(&posCmdRB, &pc);
-//	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
-//	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
-//	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
+	for(int i=0; i<MOTOR_COUNT; i++){
+		pc.posImp = 1000; RingBuffer_Insert(&(posCmdRB[i]), &pc);
+		pc.posImp = 5000; RingBuffer_Insert(&(posCmdRB[i]), &pc);
+		pc.posImp = 10000; RingBuffer_Insert(&(posCmdRB[i]), &pc);
+		pc.posImp = 15000; RingBuffer_Insert(&(posCmdRB[i]), &pc);
+		pc.time = 20000;
+		/*pc.pos = 15000; RingBuffer_Insert(&posCmdRB, &pc);
+		pc.pos = 25000; RingBuffer_Insert(&posCmdRB, &pc);
+		pc.pos = 35000;	RingBuffer_Insert(&posCmdRB, &pc);
+		pc.pos = 50000; RingBuffer_Insert(&posCmdRB, &pc);
+		pc.pos = 65000; RingBuffer_Insert(&posCmdRB, &pc);
+		pc.pos = 80000; RingBuffer_Insert(&posCmdRB, &pc);
+		pc.pos = 95000; RingBuffer_Insert(&posCmdRB, &pc);
+		pc.pos = 110000; RingBuffer_Insert(&posCmdRB, &pc);*/
+		pc.posImp = 496000; RingBuffer_Insert(&(posCmdRB[i]), &pc);
+	//	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
+	//	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
+
+	}
 }
 
 
 #define posMMtoPosImp(a) (50+(a*600));
-#define addCmdToRb(a) pc.posImp = posMMtoPosImp(a); RingBuffer_Insert(&posCmdRB, &pc)
+#define addCmdToRb(a, b) pc.posImp = posMMtoPosImp(a); RingBuffer_Insert(&(posCmdRB[b]), &pc)
 
 void fillCustom2()
 {
 	TPosCmd pc;
 	pc.time = 100;
-//	addCmdToRb(1);
-//	addCmdToRb(2);
-//	addCmdToRb(3);
-//	addCmdToRb(4);
-//	addCmdToRb(5);
-//	addCmdToRb(7);
-//	addCmdToRb(11);
-//	addCmdToRb(15);
-	addCmdToRb(20);
-	addCmdToRb(21);
-	addCmdToRb(25);
-	addCmdToRb(30);
-	addCmdToRb(38);
-	addCmdToRb(47);
-	addCmdToRb(58);
-	addCmdToRb(71);
-	addCmdToRb(84);
-	addCmdToRb(99);
-	addCmdToRb(116);
-	addCmdToRb(132);
-	addCmdToRb(150);
-	addCmdToRb(169);
-	addCmdToRb(188);
-	addCmdToRb(207);
-	addCmdToRb(227);
-	addCmdToRb(246);
-	addCmdToRb(266);
-	addCmdToRb(285);
-	addCmdToRb(304);
-	addCmdToRb(322);
-	addCmdToRb(339);
-	addCmdToRb(356);
-	addCmdToRb(372);
-	addCmdToRb(387);
-	addCmdToRb(400);
-	addCmdToRb(413);
-	addCmdToRb(423);
-	addCmdToRb(432);
-	addCmdToRb(440);
-	addCmdToRb(445);
-	addCmdToRb(448);
-	addCmdToRb(450);
-	addCmdToRb(451);
-	addCmdToRb(451);
-	addCmdToRb(449);
-	addCmdToRb(449);
-	addCmdToRb(449);
-	addCmdToRb(450);
-	addCmdToRb(451);
-	addCmdToRb(450);
-	addCmdToRb(448);
-	addCmdToRb(444);
-	addCmdToRb(438);
-	addCmdToRb(431);
-	addCmdToRb(421);
-	addCmdToRb(411);
-	addCmdToRb(398);
-	addCmdToRb(384);
-	addCmdToRb(370);
-	addCmdToRb(354);
-	addCmdToRb(337);
-	addCmdToRb(319);
-	addCmdToRb(301);
-	addCmdToRb(282);
-	addCmdToRb(263);
-	addCmdToRb(244);
-	addCmdToRb(224);
-	addCmdToRb(205);
-	addCmdToRb(185);
-	addCmdToRb(166);
-	addCmdToRb(147);
-	addCmdToRb(129);
-	addCmdToRb(112);
-	addCmdToRb(96);
-	addCmdToRb(82);
-	addCmdToRb(68);
-	addCmdToRb(56);
-	addCmdToRb(45);
-	addCmdToRb(36);
-	addCmdToRb(29);
-	addCmdToRb(24);
-	addCmdToRb(21);
-	addCmdToRb(20);
-//	addCmdToRb(15);
-//	addCmdToRb(11);
-//	addCmdToRb(7);
-//	addCmdToRb(5);
-//	addCmdToRb(4);
-//	addCmdToRb(3);
-//	addCmdToRb(2);
-//	addCmdToRb(1);
+	for(int i=0; i<MOTOR_COUNT; i++){
+	//	addCmdToRb(1);
+	//	addCmdToRb(2);
+	//	addCmdToRb(3);
+	//	addCmdToRb(4);
+	//	addCmdToRb(5);
+	//	addCmdToRb(7);
+	//	addCmdToRb(11);
+	//	addCmdToRb(15);
+		addCmdToRb(20, i);
+		addCmdToRb(21, i);
+		addCmdToRb(25, i);
+		addCmdToRb(30, i);
+		addCmdToRb(38, i);
+		addCmdToRb(47, i);
+		addCmdToRb(58, i);
+		addCmdToRb(71, i);
+		addCmdToRb(84, i);
+		addCmdToRb(99, i);
+		addCmdToRb(116, i);
+		addCmdToRb(132, i);
+		addCmdToRb(150, i);
+		addCmdToRb(169, i);
+		addCmdToRb(188, i);
+		addCmdToRb(207, i);
+		addCmdToRb(227, i);
+		addCmdToRb(246, i);
+		addCmdToRb(266, i);
+		addCmdToRb(285, i);
+		addCmdToRb(304, i);
+		addCmdToRb(322, i);
+		addCmdToRb(339, i);
+		addCmdToRb(356, i);
+		addCmdToRb(372, i);
+		addCmdToRb(387, i);
+		addCmdToRb(400, i);
+		addCmdToRb(413, i);
+		addCmdToRb(423, i);
+		addCmdToRb(432, i);
+		addCmdToRb(440, i);
+		addCmdToRb(445, i);
+		addCmdToRb(448, i);
+		addCmdToRb(450, i);
+		addCmdToRb(451, i);
+		addCmdToRb(451, i);
+		addCmdToRb(449, i);
+		addCmdToRb(449, i);
+		addCmdToRb(449, i);
+		addCmdToRb(450, i);
+		addCmdToRb(451, i);
+		addCmdToRb(450, i);
+		addCmdToRb(448, i);
+		addCmdToRb(444, i);
+		addCmdToRb(438, i);
+		addCmdToRb(431, i);
+		addCmdToRb(421, i);
+		addCmdToRb(411, i);
+		addCmdToRb(398, i);
+		addCmdToRb(384, i);
+		addCmdToRb(370, i);
+		addCmdToRb(354, i);
+		addCmdToRb(337, i);
+		addCmdToRb(319, i);
+		addCmdToRb(301, i);
+		addCmdToRb(282, i);
+		addCmdToRb(263, i);
+		addCmdToRb(244, i);
+		addCmdToRb(224, i);
+		addCmdToRb(205, i);
+		addCmdToRb(185, i);
+		addCmdToRb(166, i);
+		addCmdToRb(147, i);
+		addCmdToRb(129, i);
+		addCmdToRb(112, i);
+		addCmdToRb(96, i);
+		addCmdToRb(82, i);
+		addCmdToRb(68, i);
+		addCmdToRb(56, i);
+		addCmdToRb(45, i);
+		addCmdToRb(36, i);
+		addCmdToRb(29, i);
+		addCmdToRb(24, i);
+		addCmdToRb(21, i);
+		addCmdToRb(20, i);
+	//	addCmdToRb(15);
+	//	addCmdToRb(11);
+	//	addCmdToRb(7);
+	//	addCmdToRb(5);
+	//	addCmdToRb(4);
+	//	addCmdToRb(3);
+	//	addCmdToRb(2);
+	//	addCmdToRb(1);
+	}
 }
 
 
-TMotorData mst[motorCount];
+TMotorData mst[MOTOR_COUNT];
 void vUartctrl(void *pvParameters)
 {
 //	mc0.wNum = 0;
@@ -185,7 +190,12 @@ void vUartctrl(void *pvParameters)
 	//int32_t posCmdRbTail = 0;
 	/* Before using the ring buffers, initialize them using the ring
 	   buffer init function */
-	RingBuffer_Init(&posCmdRB, posCmdBuff, sizeof(TPosCmd), POS_CMD_RB_SIZE);
+	for(int i=0; i<MOTOR_COUNT; i++){
+		int bufInd = i*POS_CMD_RB_SIZE*sizeof(TPosCmd);
+		RingBuffer_Init(&(posCmdRB[i]), &(posCmdBuff[bufInd]), sizeof(TPosCmd), POS_CMD_RB_SIZE);
+
+	}
+
 
 
 	char msg[200];
@@ -198,13 +208,13 @@ void vUartctrl(void *pvParameters)
 	//Chip_UART_SendBlocking(LPC_UART0, msg, sizeof(msg));
 
 	uint32_t lastTickVal = 0;
-	uint32_t lastMtcVal = 0;
-	int divVal = 0x4e2;
-	int divInc = -5;
+	//uint32_t lastMtcVal = 0;
+	//int divVal = 0x4e2;
+	//int divInc = -5;
 	int ledNum = 0;
 	uint32_t itCnt=0;
 
-	for(int i=0; i<motorCount; i++){
+	for(int i=0; i<MOTOR_COUNT; i++){
 		mst[i].speedZadIPS = 0;
 		mst[i].speedCurIPS = 0;
 		mst[i].posZadI = 0;
@@ -226,53 +236,32 @@ void vUartctrl(void *pvParameters)
 
 
 	TPosCmd pc;
-
-	//	pc.time = 500;
-	//	pc.pos = 1000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	pc.pos = 5000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	pc.pos = 10000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	pc.time = 1000;
-	//	pc.pos = 20000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	pc.pos = 30000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	pc.pos = 80000;	RingBuffer_Insert(&posCmdRB, &pc);
-	//	pc.pos = 160000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 240000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 320000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 400000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 480000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 560000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 640000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 600000; RingBuffer_Insert(&posCmdRB, &pc);
-	//	//pc.pos = 580000; RingBuffer_Insert(&posCmdRB, &pc);
-
-
 	TMotorData *pMd;
-	int32_t deltaPos;
-	float devProc;
-	uint32_t l;
-
-
 //	while(getKoncState(0) == false){;
 //		DEBUGOUT("%d seeking for Konc \r\n", 0);
 //		uint32_t div = SYS_CLOCK/4000;
 //		setDiv(0, MOT_ENA, DIR_DOWN, div);
 //	}
 
+	int32_t deltaPos;
 	uint32_t idlePauseStart = 0;
-	bool bKoncState[motorCount];
+	bool bKoncState[MOTOR_COUNT];
 	bool bKs;
 	int32_t pos;
 	uint32_t div;
 	TPosCmd posCmd;
 
 	pc.time = 4000;
-	addCmdToRb(20);
+
+	for(int i=0; i<MOTOR_COUNT; i++){
+		addCmdToRb(20, i);
+	}
 	for(int i=0; ;i++){
 		//sprintf(msg, "data %d", i);
 		//strcpy(msg, "hello\r\n");
 		//Chip_UART_SendBlocking(LPC_UART0, msg, sizeof(msg));
 
-		for(int mi=0; mi<motorCount; mi++){
+		for(int mi=0; mi<MOTOR_COUNT; mi++){
 			pMd = &(mst[mi]);
 			bKs = getKoncState(mi);
 			if(bKoncState[mi] != bKs){
@@ -287,7 +276,7 @@ void vUartctrl(void *pvParameters)
 				else if((xTaskGetTickCount() -idlePauseStart)> 1000){
 					idlePauseStart = 0;
 
-					if(RingBuffer_Pop(&posCmdRB, &posCmd)){
+					if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
 						DEBUGOUT("idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", posCmd.posImp, posCmd.time);
 						pMd->state = constSpeedTimeCtrl;
 						pMd->posZadI = posCmd.posImp;
@@ -468,27 +457,27 @@ void vUartctrl(void *pvParameters)
 					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
 					bool bTimeReached = (xTaskGetTickCount() > pMd->cmdEndProcessTime);
 					if(upBorderReached){
-						DEBUGOUT("upBorder!\r\n");
+						//DEBUGOUT("upBorder!\r\n");
 					}
 					if(downBorderReached){
-						DEBUGOUT("downBorder!\r\n");
+						//DEBUGOUT("downBorder!\r\n");
 					}
 					if(bTimeReached){
-						DEBUGOUT("bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&posCmdRB));
+						//DEBUGOUT("bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&(posCmdRB[mi])));
 
 					}
-					if(bTimeReached && (pMd->dir != DIR_STOP) &&(upBorderReached == false) && (downBorderReached == false)){
-						DEBUGOUT("going o errorState\r\n");
-						pMd->state = errorState;
-						break;
-					}
+//					if(bTimeReached && (pMd->dir != DIR_STOP) &&(upBorderReached == false) && (downBorderReached == false)){
+//						DEBUGOUT("going o errorState\r\n");
+//						pMd->state = errorState;
+//						break;
+//					}
 
 
 
 					if( ((pMd->dir != DIR_STOP)&&(upBorderReached || downBorderReached)) ||
 						((pMd->dir == DIR_STOP)&&bTimeReached)
 					){
-						if(RingBuffer_Pop(&posCmdRB, &posCmd)){
+						if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
 							DEBUGOUT("constSpeedTimeCtrl new cmd p%d t%d\r\n", posCmd.posImp, posCmd.time);
 							pMd->state = constSpeedTimeCtrl;
 							pMd->posZadI = posCmd.posImp;
@@ -536,9 +525,14 @@ void vUartctrl(void *pvParameters)
 //			char s;
 //			if(getPos(0) >=0) s = '+';
 //			else s = '-';
-			DEBUGOUT("it %x %x %d %d  cmdrb:%d\r\n", xTaskGetTickCount(), itCnt,
-													getPos(0), (int)((getPos(0)*((float)mmPerRot/pulsePerRot))),
-													RingBuffer_GetCount(&posCmdRB));
+			DEBUGOUT("it %x %x %d %d  cmdrb:", xTaskGetTickCount(), itCnt,
+													getPos(0), (int)((getPos(0)*((float)mmPerRot/pulsePerRot))));
+
+			for(int i=0; i<MOTOR_COUNT; i++){
+				DEBUGOUT("%d ", RingBuffer_GetCount(&(posCmdRB[i])));
+			}
+			DEBUGOUT("\r\n");
+
 			itCnt = 0;
 
 			//IOWR_ALTERA_AVALON_PIO_DATA(PIO_LEDS_BASE, 1<<ledNum);
@@ -572,7 +566,7 @@ void vUartctrl(void *pvParameters)
 			//prompt = DEBUGIN();
 			inputStr[inputStrInd++] = prompt;
 			if ((prompt == '\n') || (inputStrInd == recvBufLen )){
-				bool motNumInited = false;
+				bool bMotNumInited = false;
 				bool bPosInited = false;
 				bool bTimeInited = false;
 				bool bVelocityInited = false;
@@ -581,21 +575,22 @@ void vUartctrl(void *pvParameters)
 				inputStr[inputStrInd] = 0;
 				//DEBUGOUT("string recvd %s", inputStr);
 				inputStrInd = 0;
-				uint8_t motNum = -1;
+				uint8_t motInd = -1;
 				int32_t pos = 0;		//procents*10
 				int32_t posImp = 0;
 				uint16_t velocity = 0; //mm per sec
 				if(inputStr[0] == 'S'){
-					motNum = atoi(&(inputStr[1]));
-					if(motNum != 0){
+					motInd = atoi(&(inputStr[1]));
+
+					if(motInd > (MOTOR_COUNT-1)){
 					//if(!((motNum>=0) && (motNum<10))){
-						motNum = -1;
-						motNumInited = false;
+						motInd = -1;
+						bMotNumInited = false;
 
 					//}
 					}
 					else{
-						motNumInited = true;
+						bMotNumInited = true;
 					}
 					//DEBUGOUT("mn %x \r\n", motNum);
 				}
@@ -603,8 +598,8 @@ void vUartctrl(void *pvParameters)
 				if(p != NULL){
 					p++;
 					pos = atoi(p);
-					if((pos>=0)&& (pos<=1000) && (motNumInited)){
-						if(pos != mst[motNum].posZadI){
+					if((pos>=0)&& (pos<=1000) && bMotNumInited){
+						if(pos != mst[motInd].posZadI){
 
 							//mst[motNum].posZadI=((pos*maxHeightImp)/1000);
 							posImp=((pos*maxHeightImp)/1000);
@@ -617,8 +612,8 @@ void vUartctrl(void *pvParameters)
 				if(p != NULL){
 					p++;
 					velocity = atoi(p);
-					if((velocity>=100)&& (velocity<=4000) && (motNumInited)){
-						mst[motNum].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
+					if((velocity>=100)&& (velocity<=4000) && bMotNumInited){
+						mst[motInd].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
 						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
 						bVelocityInited = true;
 					}
@@ -627,21 +622,26 @@ void vUartctrl(void *pvParameters)
 				if(p != NULL){
 					p++;
 					time = atoi(p);
-					if((time>0)&& (time<4000) && (motNum!=-1)){
-						mst[motNum].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
+					if((time>0)&& (time<4000) && bMotNumInited){
+						mst[motInd].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
 						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
 						bTimeInited = true;
 					}
 				}
 				//DEBUGOUT("\r\n", inputStr);
-				if(bTimeInited && bPosInited && motNumInited){
+				if(bPosInited && bMotNumInited){
 					TPosCmd pc;
-					pc.time = time;
+					if(bTimeInited == true)
+						pc.time = time;
+					else
+						pc.time = 100;
 					pc.posImp = posImp;
-					RingBuffer_Insert(&posCmdRB, &pc);
+					RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
 					//DEBUGOUT("putCmd in RB p%d p%d t%d\r\n", pos, pc.posImp, pc.time);
 					//DEBUGOUT("pC %d %d pos:%d t:%d\r\n", RingBuffer_GetCount(&posCmdRB), RingBuffer_GetCount(&uartRxRb),
 					//									pos, time);
+				}
+				else{
 
 				}
 			}

@@ -173,6 +173,7 @@ bool getKoncState(uint8_t mNum)
 		ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
 		break;
 	}
+	ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 0);
 	ret = !ret;
 	return ret;
 }

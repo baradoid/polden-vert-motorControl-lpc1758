@@ -54,6 +54,7 @@
 
 #include "ring_buffer.h"
 
+#include "motorCtrl.h"
 /*****************************************************************************
  * Private types/enumerations/variables
  ****************************************************************************/
@@ -222,7 +223,7 @@ void msDelay(uint32_t ms)
 }
 
 void uartInit();
-void SystemReInit (void);
+//void SystemReInit (void);
 void enetPinsInit();
 
 int main(void)
@@ -238,25 +239,21 @@ int main(void)
 	ssp_format.bits = SSP_BITS_16;
 	ssp_format.clockMode = SSP_CLOCK_MODE0;
 	Chip_SSP_SetFormat(LPC_SSP0, ssp_format.bits, ssp_format.frameFormat, ssp_format.clockMode);
-
 	Chip_SSP_Enable(LPC_SSP0);
-
 	Chip_SSP_SetMaster(LPC_SSP0, 1);
 
 	printf("sysclk %d\r\n", Chip_Clock_GetSystemClockRate());
 
-	/* Add another thread for initializing physical interface. This
-	   is delayed from the main LWIP initialization. */
-	xTaskCreate(vSetupIFTask, (signed char *) "SetupIFx",
-				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
-				(xTaskHandle *) NULL);
+//	xTaskCreate(vSetupIFTask, (signed char *) "SetupIFx",
+//				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
+//				(xTaskHandle *) NULL);
 //	xTaskCreate(vCPLDctrl, (signed char *) "vCPLDctrl",
 //				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
 //				(xTaskHandle *) NULL);
 
-//	xTaskCreate(vUartctrl, (signed char *) "vUartctrl",
-//				configMINIMAL_STACK_SIZE*2, NULL, (tskIDLE_PRIORITY + 1UL),
-//				(xTaskHandle *) NULL);
+	xTaskCreate(vUartctrl, (signed char *) "vUartctrl",
+				configMINIMAL_STACK_SIZE*2, NULL, (tskIDLE_PRIORITY + 1UL),
+				(xTaskHandle *) NULL);
 
 	/* Start the scheduler */
 	vTaskStartScheduler();
@@ -299,25 +296,19 @@ static uint8_t uartRxBuff[UART_RRB_SIZE];
 
 void uartInit()
 {
-
 	Chip_UART_Init(LPC_UART0);
 	Chip_UART_SetBaud(LPC_UART0, 115200);
 	Chip_UART_ConfigData(LPC_UART0, UART_LCR_WLEN8 | UART_LCR_SBS_1BIT | UART_LCR_PARITY_DIS);
 
-	/* Enable UART Transmit */
 	Chip_UART_TXEnable(LPC_UART0);
 
 	Chip_IOCON_PinMux(LPC_IOCON, 0, 2, IOCON_MODE_INACT, IOCON_FUNC1);
 	Chip_IOCON_PinMux(LPC_IOCON, 0, 3, IOCON_MODE_INACT, IOCON_FUNC1);
 
-	/* Before using the ring buffers, initialize them using the ring
-	   buffer init function */
 	RingBuffer_Init(&uartRxRb, uartRxBuff, 1, UART_RRB_SIZE);
 
-	/* Reset and enable FIFOs, FIFO trigger level 3 (14 chars) */
 	Chip_UART_SetupFIFOS(LPC_UART0, (UART_FCR_FIFO_EN | UART_FCR_RX_RS |
 							UART_FCR_TX_RS | UART_FCR_TRG_LEV3));
-	/* Enable receive data and line status interrupt */
 	Chip_UART_IntEnable(LPC_UART0, (UART_IER_RBRINT | UART_IER_RLSINT));
 
 
@@ -338,13 +329,7 @@ void initSSP()
 
 void UART0_IRQHandler(void)
 {
-	/* Want to handle any errors? Do it here. */
-
-	/* Use default ring buffer handler. Override this with your own
-	   code if you need more capability. */
 	Chip_UART_IRQRBHandler(LPC_UART0, &uartRxRb, NULL);
 }
 
-/**
- * @}
- */
+
