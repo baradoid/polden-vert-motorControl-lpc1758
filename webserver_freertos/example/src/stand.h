@@ -29,6 +29,7 @@ typedef struct{
 
 #define mmPerRot 5
 #define pulsePerRot 4000
+#define pulsePerMm pulsePerRot/mmPerRot
 
 
 #define maxHeightmm  1000

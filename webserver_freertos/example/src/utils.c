@@ -35,13 +35,49 @@ uint16_t data0, data1, data2;
 
 int32_t getPos(uint8_t mNum)
 {
+	while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) == SET) {
+		Chip_SSP_ReceiveFrame(LPC_SSP0);
+		DEBUGOUT("rx FIFO not empty on enter getPos\r\n");
+	}
+	/* Clear status */
+	Chip_SSP_ClearIntPending(LPC_SSP0, SSP_INT_CLEAR_BITMASK);
+
 	int32_t pos = 0;
 	mc0.wNum = 0;
-	mc1.wNum = 1;
+	mc0.motNum = mNum;
+
 	//DEBUGOUT(" mc0.data %x\r\n", mc0.data);
+	while(Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_TNF) != SET){
+		DEBUGOUT("wait for TX \r\n");
+	}
 	Chip_SSP_SendFrame(LPC_SSP0, mc0.data);
-	data0 = Chip_SSP_ReceiveFrame(LPC_SSP0);
+
+	while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) !=SET);
+	DEBUGOUT("ddddd %x \r\n", Chip_SSP_ReceiveFrame(LPC_SSP0));
+
+	mc1.wNum = 1;
+	while(Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_TNF) != SET){
+		DEBUGOUT("wait for TX \r\n");
+	}
+	Chip_SSP_SendFrame(LPC_SSP0, mc1.data);
+	while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) !=SET) ;
+	DEBUGOUT("ddddd %x \r\n", Chip_SSP_ReceiveFrame(LPC_SSP0));
+
+
+	mc1.wNum = 2;
+	while(Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_TNF) != SET){
+		DEBUGOUT("wait for TX \r\n");
+	}
+	Chip_SSP_SendFrame(LPC_SSP0, mc1.data);
+	while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) ==SET){
+		DEBUGOUT("ddddd %x \r\n", Chip_SSP_ReceiveFrame(LPC_SSP0));
+	}
+
+	//data0 = Chip_SSP_ReceiveFrame(LPC_SSP0);
+	//data1 = Chip_SSP_ReceiveFrame(LPC_SSP0);
+	//data2 = Chip_SSP_ReceiveFrame(LPC_SSP0);
 	//Chip_SSP_SendFrame(LPC_SSP0, mc0.data);
+	//DEBUGOUT("ddddd %x %x %x\r\n", data0, data1, data2);
 	//data1 = Chip_SSP_ReceiveFrame(LPC_SSP0);
 	//Chip_SSP_SendFrame(LPC_SSP0, mc1.data);
 	//data2 = Chip_SSP_ReceiveFrame(LPC_SSP0);
@@ -52,9 +88,10 @@ int32_t getPos(uint8_t mNum)
 	//DEBUGOUT(" datam %x %x %x\r\n", data0 , data1, data2);
 	//if(data0&0x8000){
 		//DEBUGOUT(" datam %x %d %d\r\n", data0 , data0, pos);
-	//}
+//}
 
-	return (pos<<4);
+	//return (pos<<4);
+	return pos;
 }
 
 
@@ -128,11 +165,12 @@ void motorPositionReset(uint8_t mNum)
 {
 	if(mNum == 0){
 		//TMotCtrlW0 mc0;
-		mc0.motNum = 0;
+		mc0.wNum = 0;
+		mc0.motNum = 1;
 		mc0.posReset = 1;
 		Chip_SSP_SendFrame(LPC_SSP0, mc0.data);
-		mc0.posReset = 0;
-		Chip_SSP_SendFrame(LPC_SSP0, mc0.data);
+		//mc0.posReset = 0;
+		//Chip_SSP_SendFrame(LPC_SSP0, mc0.data);
 		//data1 = Chip_SSP_ReceiveFrame(LPC_SSP0);
 	}
 }
@@ -178,3 +216,8 @@ bool getKoncState(uint8_t mNum)
 	return ret;
 }
 
+int32_t convertImpToMm(int32_t posImp)
+{
+	int32_t posInMm = (int)(posImp/(float)pulsePerMm);
+	return posInMm;
+}
