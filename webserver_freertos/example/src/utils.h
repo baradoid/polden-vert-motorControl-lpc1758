@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include "stand.h"
 
 #define RXBUFSIZE 128
 
@@ -21,6 +22,8 @@ void motorEnable(uint8_t mNum);
 void motorPositionReset(uint8_t mNum);
 
 bool getKoncState(uint8_t mNum);
+
+void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *posCmd);
 
 //typedef union{
 //	struct {

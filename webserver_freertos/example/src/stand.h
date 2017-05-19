@@ -27,9 +27,14 @@ typedef struct{
 
 } TMotorData;
 
+typedef struct{
+	int32_t posImp;
+	uint32_t time;
+} TPosCmd;
+
 #define mmPerRot 5
 #define pulsePerRot 4000
-#define pulsePerMm pulsePerRot/mmPerRot
+#define pulsePerMm (pulsePerRot/mmPerRot) //important ()!!
 
 
 #define maxHeightmm  1000

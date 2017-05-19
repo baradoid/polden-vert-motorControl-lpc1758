@@ -30,10 +30,7 @@
 
 #include "ring_buffer.h"
 
-typedef struct{
-	int32_t posImp;
-	uint32_t time;
-} TPosCmd;
+
 
 /* Transmit and receive ring buffers */
 #define POS_CMD_RB_SIZE 512	/* Receive */
@@ -70,7 +67,7 @@ void fillCustom1()
 
 
 #define posMMtoPosImp(a) (50+(a*600));
-#define addCmdToRb(a, b) pc.posImp = posMMtoPosImp(a); RingBuffer_Insert(&(posCmdRB[b]), &pc)
+#define addCmdToRb(a, b) pc.posImp = mmToImp(a); RingBuffer_Insert(&(posCmdRB[b]), &pc)
 
 void fillCustom2()
 {
@@ -237,15 +234,9 @@ void vUartctrl(void *pvParameters)
 	}
 
 
-
-	char msg[200];
-
-	strcpy(msg, "hello\r\n");
-
 	#define recvBufLen 100
 	uint8_t inputStrInd=0;
 	char inputStr[recvBufLen];
-	//Chip_UART_SendBlocking(LPC_UART0, msg, sizeof(msg));
 
 	uint32_t lastTickVal = 0;
 	//uint32_t lastMtcVal = 0;
@@ -262,16 +253,11 @@ void vUartctrl(void *pvParameters)
 		motorPositionReset(i);
 		if(getKoncState(i) == true){
 			mst[i].state = seekKonc;//idle;
-
-
 		}
 		else{
 			mst[i].state = seekKonc;
 			DEBUGOUT("%d seek for Konc \r\n", i);
-
 		}
-
-
 	}
 
 
@@ -319,17 +305,7 @@ void vUartctrl(void *pvParameters)
 					if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
 						DEBUGOUT("%d idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", mi, posCmd.posImp, posCmd.time);
 						pMd->state = constSpeedTimeCtrl;
-						pMd->posZadI = posCmd.posImp;
-						int32_t deltaPos = pMd->posZadI - getPos(mi);
-						pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
-						if(deltaPos == 0)
-							pMd->dir = DIR_STOP;
-						else
-							pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
-
-						pMd->startCmdProcessTime = xTaskGetTickCount();
-						pMd->cmdEndProcessTime = pMd->startCmdProcessTime + posCmd.time;
-
+						calcMoveParams(pMd, getPos(mi), &posCmd);
 						//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
 					}
 //					else{
@@ -379,10 +355,10 @@ void vUartctrl(void *pvParameters)
 					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
 					bool bTimeReached = (xTaskGetTickCount() > pMd->cmdEndProcessTime);
 					if(upBorderReached){
-						DEBUGOUT("%d upBorder!\r\n", mi);
+						//DEBUGOUT("%d upBorder!\r\n", mi);
 					}
 					if(downBorderReached){
-						DEBUGOUT("%d downBorder!\r\n", mi);
+						//DEBUGOUT("%d downBorder!\r\n", mi);
 					}
 					if(bTimeReached){
 						DEBUGOUT("%d bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", mi, pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&(posCmdRB[mi])));
@@ -394,30 +370,17 @@ void vUartctrl(void *pvParameters)
 						break;
 					}
 
-
-
 					if( ((pMd->dir != DIR_STOP)&&(upBorderReached || downBorderReached)) ||
 						((pMd->dir == DIR_STOP)&&bTimeReached)
 					){
 						if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-							DEBUGOUT("%d constSpeedTimeCtrl new cmd p%d t%d\r\n", mi, posCmd.posImp, posCmd.time);
+							//DEBUGOUT("%d constSpeedTimeCtrl new cmd p%d t%d\r\n", mi, posCmd.posImp, posCmd.time);
 							pMd->state = constSpeedTimeCtrl;
-							pMd->posZadI = posCmd.posImp;
-							int32_t deltaPos = pMd->posZadI - getPos(mi);
-							pMd->speedZadIPS = (abs(deltaPos)*1000)/posCmd.time;
-							if(deltaPos == 0)
-								pMd->dir = DIR_STOP;
-							else
-								pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
-
-							pMd->startCmdProcessTime = xTaskGetTickCount();
-							pMd->cmdEndProcessTime = pMd->startCmdProcessTime + posCmd.time;
-
-
+							calcMoveParams(pMd, getPos(mi), &posCmd);
 							//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
 						}
 						else{
-							DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
+							//DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
 							pMd->state = idle;
 							//pMd->state = seekKonc;
 
@@ -461,7 +424,7 @@ void vUartctrl(void *pvParameters)
 
 			for(int i=0; i<MOTOR_COUNT; i++){
 				int32_t pos = getPos(i);
-				DEBUGOUT("%x(%d) ", pos, convertImpToMm(pos));
+				DEBUGOUT("%x(%d) ", pos, impToMm(pos));
 			}
 			DEBUGOUT("cmdrb:");
 			for(int i=0; i<MOTOR_COUNT; i++){
