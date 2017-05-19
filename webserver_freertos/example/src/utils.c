@@ -2,36 +2,23 @@
 #include "stand.h"
 #include "board.h"
 
+void sspExch()
+{
+	while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) == SET) {
+		Chip_SSP_ReceiveFrame(LPC_SSP0);
+		DEBUGOUT("rx FIFO not empty on enter getPos\r\n");
+	}
+	/* Clear status */
+	Chip_SSP_ClearIntPending(LPC_SSP0, SSP_INT_CLEAR_BITMASK);
 
-//uint8_t RxBuf[RXBUFSIZE];// the receiver buffer.
-//uint32_t RxHead = 0; // the circular buffer index
-//uint32_t RxTail = 0;
+	for(int i=0; i<3; i++){
+		Chip_SSP_SendFrame(LPC_SSP0, mc[i].data);
+		while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) !=SET);
+		rxData[i] = Chip_SSP_ReceiveFrame(LPC_SSP0);
+		DEBUGOUT("%04x -> %04x \r\n", mc[i].data , rxData[i]);
+	}
 
-//uint8_t isDataAvailable()
-//{
-//	return (RxTail != RxHead);
-//}
-
-//unsigned char _getchar()
-//{
-// alt_u8 temp;
-//// while (RxTail == RxHead){
-////	 nr_delay(1);
-//// }
-// temp = RxBuf[RxTail];
-// if (++RxTail > (RXBUFSIZE -1))
-// {
-//	 RxTail = 0;
-// }
-// return(temp);
-//}
-
-
-
-
-//volatile TMotCtrlW0 mc0;
-//volatile TMotCtrlW1 mc1;
-uint16_t data0, data1, data2;
+}
 
 int32_t getPos(uint8_t mNum)
 {
@@ -55,11 +42,14 @@ int32_t getPos(uint8_t mNum)
 		rxData[i] = Chip_SSP_ReceiveFrame(LPC_SSP0);
 		DEBUGOUT("%04x -> %04x \r\n", mc[i].data , rxData[i]);
 	}
-	int32_t pos = 0;
+	uint32_t pos = 0;
 	pos = (int32_t)((rxData[1]|(rxData[2]<<16)));
 
+	if(rxData[2]&0x8)
+		pos |= 0xfff00000;
+
 	//return (pos<<4);
-	return pos;
+	return *((int32_t*)&pos);
 }
 
 

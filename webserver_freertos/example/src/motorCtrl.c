@@ -175,59 +175,52 @@ void fillCustom2()
 TMotorData mst[MOTOR_COUNT];
 void vUartctrl(void *pvParameters)
 {
-//	mc0.wNum = 0;
-//	mc0.motNum = 0;
-//	mc0.dir = 1;
+
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	motorDisable(0);
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	motorPositionReset(0);
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	motorSetDiv(0, 0x186a);
+//	motorEnable(0);
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	motorPositionReset(0);
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	motorSetDiv(0, 0x4e2);
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	//motorEnable(0);
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
 //
-//	mc1.div = 0x186a;
-//	mc1.ena = 1;
-//	mc1.wNum = 1;
-
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	motorDisable(0);
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	motorPositionReset(0);
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	motorSetDiv(0, 0x186a);
-	motorEnable(0);
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	motorPositionReset(0);
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	motorSetDiv(0, 0x4e2);
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	//motorEnable(0);
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	motorEnable(1);
-	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
-	uint16_t data0, rcv;
-	SSP_STATUS_T stat;
-	for(int i=0; ;){
-//		//data0 = 0xabab;
-//		if(Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_TFE) == SET){
-//			while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) == SET) {
-//				rcv = Chip_SSP_ReceiveFrame(LPC_SSP0);
-//				DEBUGOUT("freeFifo 				rcv %x\r\n", rcv);
-//			}
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	motorEnable(1);
+//	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+//	uint16_t data0, rcv;
+//	SSP_STATUS_T stat;
+//	for(int i=0; ;){
+////		//data0 = 0xabab;
+////		if(Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_TFE) == SET){
+////			while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) == SET) {
+////				rcv = Chip_SSP_ReceiveFrame(LPC_SSP0);
+////				DEBUGOUT("freeFifo 				rcv %x\r\n", rcv);
+////			}
+////
+////			Chip_SSP_SendFrame(LPC_SSP0, i);
+////			DEBUGOUT("snd %x\r\n", i++);
+////			Chip_SSP_SendFrame(LPC_SSP0, i);
+////			DEBUGOUT("snd %x\r\n", i++);
+////
+////			while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) == SET) {
+////				rcv = Chip_SSP_ReceiveFrame(LPC_SSP0);
+////				DEBUGOUT(" 				rcv %x\r\n", rcv);
+////			}
+////		}
 //
-//			Chip_SSP_SendFrame(LPC_SSP0, i);
-//			DEBUGOUT("snd %x\r\n", i++);
-//			Chip_SSP_SendFrame(LPC_SSP0, i);
-//			DEBUGOUT("snd %x\r\n", i++);
 //
-//			while (Chip_SSP_GetStatus(LPC_SSP0, SSP_STAT_RNE) == SET) {
-//				rcv = Chip_SSP_ReceiveFrame(LPC_SSP0);
-//				DEBUGOUT(" 				rcv %x\r\n", rcv);
-//			}
-//		}
-
-
-		DEBUGOUT("%d %d\r\n", getPos(0), getPos(1));
-		//Chip_SSP_SendFrame(LPC_SSP0, data0);
-		//rcv = Chip_SSP_ReceiveFrame(LPC_SSP0);
-		//DEBUGOUT("%x\r\n", rcv);
-	}
+//		DEBUGOUT("%d %d\r\n", getPos(0), getPos(1));
+//		//Chip_SSP_SendFrame(LPC_SSP0, data0);
+//		//rcv = Chip_SSP_ReceiveFrame(LPC_SSP0);
+//		//DEBUGOUT("%x\r\n", rcv);
+//	}
 
 
 
@@ -351,11 +344,17 @@ void vUartctrl(void *pvParameters)
 				if(bKs == false){
 					pMd->dir = DIR_DOWN;
 					div = SYS_CLOCK/12000;
-					setDiv(mi, MOT_ENA, pMd->dir, div);
+					//setDiv(mi, MOT_ENA, pMd->dir, div);
+					motorSetDiv(mi, div);
+					motorSetDir(mi, pMd->dir);
+					motorEnable(mi);
 					pMd->state = seekKonc;
 				}
 				else{
-					setDiv(mi, MOT_DIS, pMd->dir, div);
+					//setDiv(mi, MOT_DIS, pMd->dir, div);
+					motorSetDiv(mi, div);
+					motorSetDir(mi, pMd->dir);
+					motorDisable(mi);
 					motorPositionReset(mi);
 					pMd->state = idle;
 					DEBUGOUT("%d konc  found -> idle\r\n", mi);
@@ -423,7 +422,11 @@ void vUartctrl(void *pvParameters)
 							//pMd->state = seekKonc;
 
 							div = SYS_CLOCK/1000;
-							setDiv(mi, MOT_DIS, pMd->dir, div);
+							//setDiv(mi, MOT_DIS, pMd->dir, div);
+							motorDisable(mi);
+							motorSetDir(mi, pMd->dir);
+							motorSetDiv(mi, div);
+
 						}
 					}
 
@@ -431,11 +434,17 @@ void vUartctrl(void *pvParameters)
 						//DEBUGOUT("constSpeedTimeCtrl p:%d pz:%d pd:%d\r\n", pos, pMd->posZadI, pMd->dir);
 						pMd->state = constSpeedTimeCtrl;
 						if(pMd->dir == DIR_STOP){
-							setDiv(mi, MOT_DIS, pMd->dir, div);
+							//setDiv(mi, MOT_DIS, pMd->dir, div);
+							motorDisable(mi);
+							motorSetDir(mi, pMd->dir);
+							motorSetDiv(mi, div);
 						}
 						else{
 							div = SYS_CLOCK/pMd->speedZadIPS;
-							setDiv(mi, MOT_ENA, pMd->dir, div);
+							//setDiv(mi, MOT_ENA, pMd->dir, div);
+							motorSetDir(mi, pMd->dir);
+							motorSetDiv(mi, div);
+							motorEnable(mi);
 						}
 
 					}
