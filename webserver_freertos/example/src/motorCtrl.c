@@ -183,7 +183,24 @@ void vUartctrl(void *pvParameters)
 //	mc1.ena = 1;
 //	mc1.wNum = 1;
 
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+	motorDisable(0);
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+	motorPositionReset(0);
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+	motorSetDiv(0, 0x186a);
+	motorEnable(0);
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+	motorPositionReset(0);
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+	motorSetDiv(0, 0x4e2);
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+	//motorEnable(0);
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
 
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
+	motorEnable(1);
+	DEBUGOUT("pos: %d %d\r\n", getPos(0), getPos(1));
 	uint16_t data0, rcv;
 	SSP_STATUS_T stat;
 	for(int i=0; ;){
@@ -206,7 +223,7 @@ void vUartctrl(void *pvParameters)
 //		}
 
 
-		DEBUGOUT("%x %x\r\n", getPos(0), getPos(1));
+		DEBUGOUT("%d %d\r\n", getPos(0), getPos(1));
 		//Chip_SSP_SendFrame(LPC_SSP0, data0);
 		//rcv = Chip_SSP_ReceiveFrame(LPC_SSP0);
 		//DEBUGOUT("%x\r\n", rcv);
