@@ -31,8 +31,8 @@
 
 
 /* Transmit and receive ring buffers */
-#define POS_CMD_RB_SIZE 512	/* Receive */
-RINGBUFF_T posCmdRB[MOTOR_COUNT];
+#define POS_CMD_RB_SIZE 256	/* Receive */
+volatile RINGBUFF_T posCmdRB[MOTOR_COUNT];
 uint8_t posCmdBuff[MOTOR_COUNT*POS_CMD_RB_SIZE*sizeof(TPosCmd)];
 
 extern RINGBUFF_T uartRxRb;
@@ -369,7 +369,7 @@ void vUartctrl(void *pvParameters)
 					if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
 						RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
 						DEBUGOUT("cmdOk\r\n");
-						//DEBUGOUT("p %d  pI \r\n", pos, pc.posImp);
+						DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
 					}
 					else{
 						DEBUGOUT("Fifo full!\r\n");
