@@ -143,13 +143,13 @@ void SystemInit(void)
 //	Chip_SystemInit();
 //#else
 //	/* Setup system clocking and muxing */
-	Board_SystemInit();
+	//Board_SystemInit();
 //#endif
 	//Chip_SetupOscClockingCustom();
 
 	/* Setup FLASH access to 4 clocks (100MHz clock) */
 	//Chip_SYSCTL_SetFLASHAccess(FLASHTIM_100MHZ_CPU);
-	//Chip_SetupIrcClockingCustom();
+	Chip_SetupIrcClockingCustom();
 
 }
 

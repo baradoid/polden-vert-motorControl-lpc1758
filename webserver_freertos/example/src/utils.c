@@ -108,13 +108,20 @@ bool getKoncState(uint8_t mNum)
 	bool ret = false;
 	switch(mNum){
 	case 0:
-		ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
+		ret = Chip_GPIO_GetPinState(LPC_GPIO, 0, 25);
 		break;
 	case 1:
+		ret = Chip_GPIO_GetPinState(LPC_GPIO, 0, 26);
+		break;
+
+	case 2:
+		ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
+		break;
+	case 3:
 		ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 2);
 		break;
 	}
-	ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
+	//ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
 	ret = !ret;
 	return ret;
 }
