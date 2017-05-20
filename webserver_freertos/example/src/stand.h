@@ -4,8 +4,8 @@ typedef enum {
 	idle, errorState, seekKonc, calcParams, speedDeviation, constSpeed, constSpeedTimeCtrl
 } TMotorState;
 
-#define SYS_CLOCK 10000000
-#define MOTOR_COUNT 2
+#define SYS_CLOCK 50000000
+#define MOTOR_COUNT 1
 typedef struct{
 	uint32_t speedMaxIPS; //max
 	uint32_t speedZadIPS;

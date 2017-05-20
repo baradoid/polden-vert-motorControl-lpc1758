@@ -80,7 +80,7 @@ static void prvSetupHardware(void)
 
 	/* LED0 is used for the link status, on = PHY cable detected */
 	/* Initial LED state is off to show an unconnected cable state */
-	Board_LED_Set(0, false);
+	//Board_LED_Set(0, false);
 }
 
 /* Callback for TCPIP thread to indicate TCPIP init is done */
@@ -225,16 +225,16 @@ void msDelay(uint32_t ms)
 void uartInit();
 //void SystemReInit (void);
 void enetPinsInit();
+void SSPInit();
 
 int main(void)
 {
-
 	//SystemReInit();
 	prvSetupHardware();
 	uartInit();
 	enetPinsInit();
 	Board_SSP_Init(LPC_SSP0);
-	Chip_SSP_Init(LPC_SSP0);
+	SSPInit();
 	ssp_format.frameFormat = SSP_FRAMEFORMAT_SPI;
 	ssp_format.bits = SSP_BITS_16;
 	ssp_format.clockMode = SSP_CLOCK_MODE0;
@@ -242,7 +242,13 @@ int main(void)
 	Chip_SSP_Enable(LPC_SSP0);
 	Chip_SSP_SetMaster(LPC_SSP0, 1);
 
-	printf("sysclk %d\r\n", Chip_Clock_GetSystemClockRate());
+	Chip_IOCON_PinMux(LPC_IOCON, 2, 0, IOCON_MODE_INACT, IOCON_FUNC0);
+	Chip_GPIO_WriteDirBit(LPC_GPIO, 2, 0, false);
+	//Chip_IOCON_PinMux(LPC_IOCON, 0, 6, IOCON_MODE_INACT, IOCON_FUNC2);
+	//Chip_IOCON_PinMux(LPC_IOCON, 0, 8, IOCON_MODE_INACT, IOCON_FUNC2);
+	//Chip_IOCON_PinMux(LPC_IOCON, 0, 9, IOCON_MODE_INACT, IOCON_FUNC2);
+
+	printf("sysclk %d periph %d\r\n", Chip_Clock_GetSystemClockRate(), Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_SSP0));
 
 //	xTaskCreate(vSetupIFTask, (signed char *) "SetupIFx",
 //				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
@@ -252,7 +258,7 @@ int main(void)
 //				(xTaskHandle *) NULL);
 
 	xTaskCreate(vUartctrl, (signed char *) "vUartctrl",
-				configMINIMAL_STACK_SIZE*2, NULL, (tskIDLE_PRIORITY + 1UL),
+				configMINIMAL_STACK_SIZE*3, NULL, (tskIDLE_PRIORITY + 1UL),
 				(xTaskHandle *) NULL);
 
 	/* Start the scheduler */
@@ -332,6 +338,15 @@ void UART0_IRQHandler(void)
 	Chip_UART_IRQRBHandler(LPC_UART0, &uartRxRb, NULL);
 }
 
+/* Initialize the SSP */
+void SSPInit()
+{
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SSP0);
+
+	Chip_SSP_Set_Mode(LPC_SSP0, SSP_MODE_MASTER);
+	Chip_SSP_SetFormat(LPC_SSP0, SSP_BITS_8, SSP_FRAMEFORMAT_SPI, SSP_CLOCK_CPHA0_CPOL0);
+	Chip_SSP_SetBitRate(LPC_SSP0, 4000000);
+}
 //void ETH_IRQHandler(void)
 //{
 //

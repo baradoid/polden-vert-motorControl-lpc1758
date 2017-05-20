@@ -315,7 +315,7 @@ typedef enum CHIP_SYSCTL_CLOCK {
  * Some clocks need to be enabled elsewhere (ie, USB) and will return
  * false to indicate it can't be enabled with this function.
  */
-void Chip_Clock_EnablePeriphClock(CHIP_SYSCTL_CLOCK_T clk);
+void ckChip_Clock_EnablePeriphClock(CHIP_SYSCTL_CLOCK_T clk);
 
 /**
  * @brief	Disables power and clocking for a peripheral
