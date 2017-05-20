@@ -5,7 +5,7 @@ typedef enum {
 } TMotorState;
 
 #define SYS_CLOCK 50000000
-#define MOTOR_COUNT 1
+#define MOTOR_COUNT 4
 typedef struct{
 	uint32_t speedMaxIPS; //max
 	uint32_t speedZadIPS;
@@ -37,8 +37,8 @@ typedef struct{
 #define pulsePerMm (pulsePerRot/mmPerRot) //important ()!!
 
 
-#define maxHeightmm  1000
-#define maxHeightImp  (maxHeightmm*pulsePerRot/mmPerRot)
+//#define maxHeightmm  1000
+//#define maxHeightImp  (maxHeightmm*pulsePerRot/mmPerRot)
 
 #define maxSpeedMmPs 200
 #define maxSpeedIPS (maxSpeedMmPs*pulsePerRot/mmPerRot))

@@ -31,7 +31,7 @@
 
 
 /* Transmit and receive ring buffers */
-#define POS_CMD_RB_SIZE 2048	/* Receive */
+#define POS_CMD_RB_SIZE 512	/* Receive */
 RINGBUFF_T posCmdRB[MOTOR_COUNT];
 uint8_t posCmdBuff[MOTOR_COUNT*POS_CMD_RB_SIZE*sizeof(TPosCmd)];
 
@@ -127,6 +127,7 @@ void vUartctrl(void *pvParameters)
 						pMd->state = constSpeedTimeCtrl;
 						calcMoveParams(pMd, getPos(mi), &posCmd);
 						//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
+
 					}
 //					else{
 //						fillCustom2();
@@ -161,7 +162,16 @@ void vUartctrl(void *pvParameters)
 
 
 				case constSpeedTimeCtrl:
-					pos = getPos(mi);
+
+					while(1){   //!!!
+						pos = getPos(mi);
+						if(pos!= 65536)
+							break;
+						else{
+							DEBUGOUT("pos 65536!!\r\n");
+							//motorDisable(mi);
+						}
+					}
 
 					deltaPos = mst[mi].posZadI - pos;
 					//DEBUGOUT("move to %d pos %d delta %d speed IPS %d\r\n", mst[mi].posZadI, pos, deltaPos, mst[mi].speedZadIPS);
@@ -175,10 +185,10 @@ void vUartctrl(void *pvParameters)
 					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
 					bool bTimeReached = (xTaskGetTickCount() > pMd->cmdEndProcessTime);
 					if(upBorderReached){
-						//DEBUGOUT("%d upBorder!\r\n", mi);
+						DEBUGOUT("%d upB! %d\r\n", mi, pos);
 					}
 					if(downBorderReached){
-						//DEBUGOUT("%d downBorder!\r\n", mi);
+						DEBUGOUT("%d downB! %d\r\n", mi, pos);
 					}
 					if(bTimeReached){
 						//DEBUGOUT("%d bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", mi, pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&(posCmdRB[mi])));

@@ -80,9 +80,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.crt.advproject.config.exe.debug.1886496314.85426877" name="motorCtrl.c" rcbsApplicability="disable" resourcePath="example/src/motorCtrl.c" toolsToInvoke="com.crt.advproject.gcc.exe.debug.457726334.911148163">
-						<tool id="com.crt.advproject.gcc.exe.debug.457726334.911148163" name="MCU C Compiler" superClass="com.crt.advproject.gcc.exe.debug.457726334"/>
-					</fileInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="example"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="freertos"/>
