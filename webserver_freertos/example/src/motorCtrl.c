@@ -73,7 +73,11 @@ void vUartctrl(void *pvParameters)
 //			mst[i].state = seekKonc;
 //			DEBUGOUT("%d seek for Konc \r\n", i);
 //		}
-		mst[i].state = idle;//period;//seekKonc;/
+		mst[i].dir = DIR_UP;
+		mst[i].state =period;// idle;////seekKonc;/
+		mst[i].cmdEndProcessTime = xTaskGetTickCount()+5000+2000*i;
+		//mst[i].state =goDown;// idle;////seekKonc;/
+		mst[i].bFirstEnter = true;
 	}
 
 
@@ -115,6 +119,11 @@ void vUartctrl(void *pvParameters)
 				bKoncState[mi] = bKs;
 				//DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
 			}
+			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10)== false){
+				DEBUGOUT("but 2[10] det -> go down state\r\n");
+				mst[mi].state =goDown;
+
+			}
 			switch(pMd->state){
 			case idle:
 //				if(idlePauseStart == 0){
@@ -136,10 +145,83 @@ void vUartctrl(void *pvParameters)
 //				}
 				break;
 
-			case period:
-				motorSetDiv(mi, SYS_CLOCK/4000);
-				motorSetDir(mi, DIR_UP);
+			case goDown:
+				motorSetDiv(mi, SYS_CLOCK/1000);
+				motorSetDir(mi, DIR_DOWN);
 				motorEnable(mi);
+				break;
+
+			case period:
+				while(1){   //!!!
+					pos = getPos(mi);
+					if(pos!= 65536)
+						break;
+					else{
+						//DEBUGOUT("pos 65536!!\r\n");
+						//motorDisable(mi);
+					}
+				}
+
+				//DEBUGOUT("%d period\r\n", mi);
+
+				if(xTaskGetTickCount() > pMd->cmdEndProcessTime ){
+					if(pMd->bFirstEnter){
+
+						DEBUGOUT("%d start demo\r\n", mi);
+						pMd->bFirstEnter = false;
+					}
+
+
+					int32_t mmPos = impToMm(pos);
+					if(pMd->dir == DIR_UP){
+						if(mmPos > 800){
+							pMd->dir = DIR_DOWN;
+							div = SYS_CLOCK/1000;
+							//setDiv(mi, MOT_ENA, pMd->dir, div);
+							motorSetDiv(mi, div);
+							motorSetDir(mi, pMd->dir);
+							motorEnable(mi);
+							DEBUGOUT("%d upB! %d\r\n", mi, pos);
+						}
+						else
+						{
+							//pMd->dir = DIR_DOWN;
+							div = SYS_CLOCK/50000;
+							//setDiv(mi, MOT_ENA, pMd->dir, div);
+							motorSetDiv(mi, div);
+							motorSetDir(mi, pMd->dir);
+							motorEnable(mi);
+						}
+
+						//pMd->state = seekKonc;
+					}
+					else{
+						if(mmPos < 10){
+							pMd->dir = DIR_UP;
+							div = SYS_CLOCK/50000;
+							//setDiv(mi, MOT_ENA, pMd->dir, div);
+							motorSetDiv(mi, div);
+							motorSetDir(mi, pMd->dir);
+							motorEnable(mi);
+							DEBUGOUT("%d downB! %d\r\n", mi, pos);
+
+						}
+						else
+						{
+							//pMd->dir = DIR_DOWN;
+							div = SYS_CLOCK/1000;
+							//setDiv(mi, MOT_ENA, pMd->dir, div);
+							motorSetDiv(mi, div);
+							motorSetDir(mi, pMd->dir);
+							motorEnable(mi);
+						}
+					}
+				}
+				else{
+					//DEBUGOUT("%d period\r\n", mi);
+					motorDisable(mi);
+				}
+
 				break;
 			case seekKonc:
 				//bKs = getKoncState(mi);
@@ -255,7 +337,12 @@ void vUartctrl(void *pvParameters)
 //			char s;
 //			if(getPos(0) >=0) s = '+';
 //			else s = '-';
-			DEBUGOUT("it %x %x  ", xTaskGetTickCount(), itCnt);
+			uint32_t t = xTaskGetTickCount();
+			uint16_t sTot = t/1000;
+			uint16_t m = sTot/60;
+			uint16_t sCur = (t-(m*60*1000))/1000;
+
+			DEBUGOUT("it %02d%02d %x  ", m, sCur, itCnt);
 
 			for(int i=0; i<MOTOR_COUNT; i++){
 				int32_t pos = getPos(i);

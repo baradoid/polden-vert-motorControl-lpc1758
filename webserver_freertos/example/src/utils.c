@@ -25,21 +25,38 @@ int32_t getPos(uint8_t mNum)
 {
 	uint16_t rxData[3];
 	TMotCtrl mc[3];
+	int32_t posS=0, posSL=0;
+	uint32_t pos = 0;
+
 	memset(&(mc[0]), 0, 3*sizeof(TMotCtrl));
 	mc[0].type0.wNum = 0; mc[0].type0.motNum = mNum;
 	mc[1].type4.wNum = 4;
 	mc[2].type4.wNum = 4;
 
-	sspExch(&(mc[0]), &(rxData[0]), 3);
 
-	uint32_t pos = 0;
+	sspExch(&(mc[0]), &(rxData[0]), 3);
 	pos = (int32_t)((rxData[1]|(rxData[2]<<16)));
 
 	if(rxData[2]&0x8)
 		pos |= 0xfff00000;
 
+	posS = *((int32_t*)&pos);
+
+	while(1){
+		posSL = posS;
+		sspExch(&(mc[0]), &(rxData[0]), 3);
+		pos = (int32_t)((rxData[1]|(rxData[2]<<16)));
+
+		if(rxData[2]&0x8)
+			pos |= 0xfff00000;
+
+		posS = *((int32_t*)&pos);
+		if(abs(posS - posSL) < 3000)
+			break;
+
+	}
 	//return (pos<<4);
-	return *((int32_t*)&pos);
+	return posS;
 }
 
 

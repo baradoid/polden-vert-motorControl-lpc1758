@@ -1,7 +1,8 @@
 #pragma once
-
+#include <stdbool.h>
 typedef enum {
-	idle, errorState, seekKonc, calcParams, speedDeviation, constSpeed, constSpeedTimeCtrl, period
+	idle, errorState, seekKonc, calcParams, speedDeviation, constSpeed, constSpeedTimeCtrl,
+	period, goDown
 } TMotorState;
 
 #define SYS_CLOCK 50000000
@@ -23,6 +24,7 @@ typedef struct{
 
 	uint32_t startCmdProcessTime;
 	uint32_t cmdEndProcessTime;
+	bool bFirstEnter;
 
 
 } TMotorData;
@@ -32,7 +34,7 @@ typedef struct{
 	uint32_t time;
 } TPosCmd;
 
-#define mmPerRot 5
+#define mmPerRot 10
 #define pulsePerRot 4000
 #define pulsePerMm (pulsePerRot/mmPerRot) //important ()!!
 
