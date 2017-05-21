@@ -66,13 +66,14 @@ void vUartctrl(void *pvParameters)
 		mst[i].posZadI = 0;
 		mst[i].bReverse = 0;
 		motorPositionReset(i);
-		if(getKoncState(i) == true){
-			mst[i].state = seekKonc;//idle;
-		}
-		else{
-			mst[i].state = seekKonc;
-			DEBUGOUT("%d seek for Konc \r\n", i);
-		}
+//		if(getKoncState(i) == true){
+//			mst[i].state = period;//seekKonc;//idle;
+//		}
+//		else{
+//			mst[i].state = seekKonc;
+//			DEBUGOUT("%d seek for Konc \r\n", i);
+//		}
+		mst[i].state = idle;//period;//seekKonc;/
 	}
 
 
@@ -112,7 +113,7 @@ void vUartctrl(void *pvParameters)
 			bKs = getKoncState(mi);
 			if(bKoncState[mi] != bKs){
 				bKoncState[mi] = bKs;
-				DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
+				//DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
 			}
 			switch(pMd->state){
 			case idle:
@@ -135,6 +136,11 @@ void vUartctrl(void *pvParameters)
 //				}
 				break;
 
+			case period:
+				motorSetDiv(mi, SYS_CLOCK/4000);
+				motorSetDir(mi, DIR_UP);
+				motorEnable(mi);
+				break;
 			case seekKonc:
 				//bKs = getKoncState(mi);
 
