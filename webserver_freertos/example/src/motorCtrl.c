@@ -327,12 +327,12 @@ void vUartctrl(void *pvParameters)
 						((pMd->dir == DIR_STOP)&&bTimeReached)
 					){
 						if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-							DEBUGOUT("%d constSpeed new cmd p%d t%d cmdrb:%d \r\n", mi, posCmd.posImp, posCmd.time, RingBuffer_GetCount(&(posCmdRB[mi])));
+							//DEBUGOUT("%d constSpeed new cmd p%d t%d cmdrb:%d \r\n", mi, posCmd.posImp, posCmd.time, RingBuffer_GetCount(&(posCmdRB[mi])));
 							pMd->state = constSpeedTimeCtrl;
 							calcMoveParams(pMd, getPos(mi), &posCmd);
 						}
 						else{
-							DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
+							//DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
 							pMd->state = idle;
 							//pMd->state = seekKonc;
 

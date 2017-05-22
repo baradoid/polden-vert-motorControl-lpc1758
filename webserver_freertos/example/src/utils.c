@@ -163,7 +163,7 @@ void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *pPosCmd)
 
 	pMd->startCmdProcessTime = xTaskGetTickCount();
 	pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  pPosCmd->time +  pPosCmd->time/10; //10%
-	DEBUGOUT("move to %d(%d) f %d(%d) d %d IPS %d\r\n", pMd->posZadI, impToMm(pMd->posZadI), pos, impToMm(pos), deltaPos, pMd->speedZadIPS);
+	//DEBUGOUT("move to %d(%d) f %d(%d) d %d IPS %d\r\n", pMd->posZadI, impToMm(pMd->posZadI), pos, impToMm(pos), deltaPos, pMd->speedZadIPS);
 
 }
 
