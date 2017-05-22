@@ -232,7 +232,7 @@ int main(void)
 	//SystemReInit();
 	prvSetupHardware();
 	uartInit();
-	enetPinsInit();
+	//enetPinsInit();
 	Board_SSP_Init(LPC_SSP0);
 	SSPInit();
 	ssp_format.frameFormat = SSP_FRAMEFORMAT_SPI;
@@ -242,9 +242,8 @@ int main(void)
 	Chip_SSP_Enable(LPC_SSP0);
 	Chip_SSP_SetMaster(LPC_SSP0, 1);
 
-	Chip_IOCON_PinMux(LPC_IOCON, 2, 0, IOCON_MODE_INACT, IOCON_FUNC0);
-	//Chip_IOCON_PinMux(LPC_IOCON, 0, 26, IOCON_MODE_INACT, IOCON_FUNC0);
-	Chip_GPIO_WriteDirBit(LPC_GPIO, 2, 0, false);
+	Chip_IOCON_PinMux(LPC_IOCON, 2, 0, IOCON_MODE_INACT, IOCON_FUNC0); Chip_GPIO_WriteDirBit(LPC_GPIO, 2, 0, false);
+	Chip_IOCON_PinMux(LPC_IOCON, 2, 1, IOCON_MODE_INACT, IOCON_FUNC0); Chip_GPIO_WriteDirBit(LPC_GPIO, 2, 1, false);
 	//Chip_IOCON_PinMux(LPC_IOCON, 0, 6, IOCON_MODE_INACT, IOCON_FUNC2);
 	//Chip_IOCON_PinMux(LPC_IOCON, 0, 8, IOCON_MODE_INACT, IOCON_FUNC2);
 	//Chip_IOCON_PinMux(LPC_IOCON, 0, 9, IOCON_MODE_INACT, IOCON_FUNC2);
@@ -259,7 +258,7 @@ int main(void)
 //				(xTaskHandle *) NULL);
 
 	xTaskCreate(vUartctrl, (signed char *) "vUartctrl",
-				configMINIMAL_STACK_SIZE*3, NULL, (tskIDLE_PRIORITY + 1UL),
+				configMINIMAL_STACK_SIZE*4, NULL, (tskIDLE_PRIORITY + 1UL),
 				(xTaskHandle *) NULL);
 
 	/* Start the scheduler */

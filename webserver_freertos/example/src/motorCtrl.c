@@ -78,6 +78,8 @@ void vUartctrl(void *pvParameters)
 		mst[i].cmdEndProcessTime = xTaskGetTickCount()+5000+2000*i;
 		//mst[i].state =goDown;// idle;////seekKonc;/
 		mst[i].bFirstEnter = true;
+		mst[i].state = seekKonc;
+		//mst[i].state =goDown;
 	}
 
 
@@ -106,52 +108,83 @@ void vUartctrl(void *pvParameters)
 	for(int i=0; i<MOTOR_COUNT; i++){
 		addCmdToRb(20, i);
 	}
+	uint32_t gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
+	bool bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
 	for(int i=0; ;i++){
 		//sprintf(msg, "data %d", i);
 		//strcpy(msg, "hello\r\n");
 		//Chip_UART_SendBlocking(LPC_UART0, msg, sizeof(msg));
 
+//		if(gpio2Val != Chip_GPIO_GetPortValue(LPC_GPIO, 2)){
+//			gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
+//			DEBUGOUT("%x\r\n", Chip_GPIO_GetPortValue(LPC_GPIO, 2));
+//		}
+		//DEBUGOUT("main \r\n");
 		for(int mi=0; mi<MOTOR_COUNT; mi++){
-			//DEBUGOUT("%x\r\n", Chip_GPIO_GetPortValue(LPC_GPIO, 2));
+
+			//DEBUGOUT("proc %d \r\n", mi);
 			pMd = &(mst[mi]);
 			bKs = getKoncState(mi);
 			if(bKoncState[mi] != bKs){
 				bKoncState[mi] = bKs;
-				//DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
+				DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
 			}
-			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10)== false){
-				DEBUGOUT("but 2[10] det -> go down state\r\n");
-				mst[mi].state =goDown;
-
-			}
+			//DEBUGOUT("proc 2 %d \r\n", mi);
+//			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
+//				bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
+//				DEBUGOUT("but 2[10] det -> go down state\r\n");
+//
+//
+//				if(mi == 0){
+//					mst[mi].state =seekKonc;
+//				}
+//				else{
+//					mst[mi].state = goDown;
+//
+//				}
+//
+//			}
+			//DEBUGOUT("start switch \r\n");
 			switch(pMd->state){
 			case idle:
+				//DEBUGOUT("idle \r\n");
+				//if(mst[i].cmdEndProcessTime > xTaskGetTickCount()){
 //				if(idlePauseStart == 0){
 //					idlePauseStart = xTaskGetTickCount();
 //				}
 //				else if((xTaskGetTickCount() -idlePauseStart)> 1000){
 //					idlePauseStart = 0;
 
+					//DEBUGOUT("%d check for cmd\r\n", mi);
 					if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-						DEBUGOUT("%d idle new cmd p%d t%d->constSpeedTimeCtrl\r\n", mi, posCmd.posImp, posCmd.time);
+						DEBUGOUT("%d idle new cmd p%d t%d ->constSpeedTimeCtrl\r\n", mi, posCmd.posImp, posCmd.time);
 						pMd->state = constSpeedTimeCtrl;
 						calcMoveParams(pMd, getPos(mi), &posCmd);
 						//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
 
 					}
-//					else{
-//						fillCustom2();
-//					}
+					else{
+						DEBUGOUT("fill with custom2\r\n");
+						fillCustom2();
+					}
+
 //				}
+//				else{
+//					DEBUGOUT("%d ide else\r\n", mi);
+//
+//				}
+				//DEBUGOUT("idle end \r\n");
 				break;
 
 			case goDown:
+				//DEBUGOUT("goDown \r\n");
 				motorSetDiv(mi, SYS_CLOCK/1000);
 				motorSetDir(mi, DIR_DOWN);
 				motorEnable(mi);
 				break;
 
 			case period:
+				DEBUGOUT("period \r\n");
 				while(1){   //!!!
 					pos = getPos(mi);
 					if(pos!= 65536)
@@ -224,6 +257,7 @@ void vUartctrl(void *pvParameters)
 
 				break;
 			case seekKonc:
+				//DEBUGOUT("seekKonc \r\n");
 				//bKs = getKoncState(mi);
 
 				if(bKs == false){
@@ -250,6 +284,7 @@ void vUartctrl(void *pvParameters)
 
 
 				case constSpeedTimeCtrl:
+					//DEBUGOUT("constSpeedTimeCtrl \r\n");
 
 					while(1){   //!!!
 						pos = getPos(mi);
@@ -273,10 +308,10 @@ void vUartctrl(void *pvParameters)
 					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
 					bool bTimeReached = (xTaskGetTickCount() > pMd->cmdEndProcessTime);
 					if(upBorderReached){
-						DEBUGOUT("%d upB! %d\r\n", mi, pos);
+						//DEBUGOUT("%d upB! %x(%d)\r\n", mi, pos, impToMm(pos));
 					}
 					if(downBorderReached){
-						DEBUGOUT("%d downB! %d\r\n", mi, pos);
+						//DEBUGOUT("%d downB! %x(%d)\r\n", mi, pos, impToMm(pos));
 					}
 					if(bTimeReached){
 						//DEBUGOUT("%d bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", mi, pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&(posCmdRB[mi])));
@@ -292,7 +327,7 @@ void vUartctrl(void *pvParameters)
 						((pMd->dir == DIR_STOP)&&bTimeReached)
 					){
 						if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-							DEBUGOUT("%d constSpeed new cmd p%d t%d cmdrb:%d\r\n", mi, posCmd.posImp, posCmd.time, RingBuffer_GetCount(&(posCmdRB[mi])));
+							DEBUGOUT("%d constSpeed new cmd p%d t%d cmdrb:%d \r\n", mi, posCmd.posImp, posCmd.time, RingBuffer_GetCount(&(posCmdRB[mi])));
 							pMd->state = constSpeedTimeCtrl;
 							calcMoveParams(pMd, getPos(mi), &posCmd);
 						}
@@ -301,13 +336,15 @@ void vUartctrl(void *pvParameters)
 							pMd->state = idle;
 							//pMd->state = seekKonc;
 
-							div = SYS_CLOCK/1000;
+							//div = SYS_CLOCK/1000;
 							//setDiv(mi, MOT_DIS, pMd->dir, div);
 							motorDisable(mi);
 							motorSetDir(mi, pMd->dir);
 							motorSetDiv(mi, div);
+							//DEBUGOUT("%d thats all\r\n",  mi);
 
 						}
+						//DEBUGOUT("%d thats all 2\r\n",  mi);
 					}
 
 					else{
@@ -328,10 +365,15 @@ void vUartctrl(void *pvParameters)
 						}
 
 					}
+					//DEBUGOUT("%d cspe\r\n",  mi);
 					break;
+				default:
+					//DEBUGOUT("%d default\r\n",  mi);
+				break;
 			}
 
 		}
+		//DEBUGOUT("iter1\r\n");
 		if(xTaskGetTickCount() - lastTickVal > 1000){
 			lastTickVal = xTaskGetTickCount() ;
 //			char s;
@@ -379,7 +421,7 @@ void vUartctrl(void *pvParameters)
 		itCnt++;
 		//DEBUGOUT("0x%x 0x%x\r\n" , data0, data1);
 
-
+		//DEBUGOUT("iter2\r\n");
 		//while(Chip_UART_ReadLineStatus(DEBUG_UART) & UART_LSR_RDR){
 		char prompt = 0;
 		while(RingBuffer_Pop(&uartRxRb, &prompt)){
@@ -461,7 +503,7 @@ void vUartctrl(void *pvParameters)
 					pc.posImp = posImp;
 					if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
 						RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
-						DEBUGOUT("cmdOk\r\n");
+						//DEBUGOUT("cmdOk\r\n");
 						DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
 					}
 					else{
@@ -479,7 +521,9 @@ void vUartctrl(void *pvParameters)
 
 		//printf("lala\r\n");
 		//vTaskDelay(configTICK_RATE_HZ/100 );
+		//DEBUGOUT("iter3\r\n");
 	}
+	DEBUGOUT("exit\r\n");
 }
 
 

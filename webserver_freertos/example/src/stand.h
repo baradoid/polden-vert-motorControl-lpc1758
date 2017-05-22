@@ -32,6 +32,7 @@ typedef struct{
 typedef struct{
 	int32_t posImp;
 	uint32_t time;
+	//uint32_t num;
 } TPosCmd;
 
 #define mmPerRot 10
