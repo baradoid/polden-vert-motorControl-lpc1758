@@ -397,9 +397,9 @@ void vUartctrl(void *pvParameters)
 
 			for(int i=0; i<MOTOR_COUNT; i++){
 				int32_t pos = getPos(i);
-				DEBUGOUT("%x(%d) ", pos, impToMm(pos));
+				DEBUGOUT("%d ", impToMm(pos));
 			}
-			DEBUGOUT("cmdrb:");
+			DEBUGOUT("rb:");
 			for(int i=0; i<MOTOR_COUNT; i++){
 				DEBUGOUT("%d ", RingBuffer_GetCount(&(posCmdRB[i])));
 			}
