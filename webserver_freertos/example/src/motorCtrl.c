@@ -130,20 +130,20 @@ void vUartctrl(void *pvParameters)
 				DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
 			}
 			//DEBUGOUT("proc 2 %d \r\n", mi);
-//			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
-//				bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
-//				DEBUGOUT("but 2[10] det -> go down state\r\n");
-//
-//
-//				if(mi == 0){
-//					mst[mi].state =seekKonc;
-//				}
-//				else{
-//					mst[mi].state = goDown;
-//
-//				}
-//
-//			}
+			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
+				bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
+				DEBUGOUT("but 2[10] det -> go down state\r\n");
+
+
+				//if(mi == 0){
+					//mst[mi].state =seekKonc;
+				//}
+				//else{
+					mst[mi].state = goDown;
+
+				//}
+
+			}
 			//DEBUGOUT("start switch \r\n");
 			switch(pMd->state){
 			case idle:
@@ -157,15 +157,15 @@ void vUartctrl(void *pvParameters)
 
 					//DEBUGOUT("%d check for cmd\r\n", mi);
 					if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-						DEBUGOUT("%d idle new cmd p%d t%d ->constSpeedTimeCtrl\r\n", mi, posCmd.posImp, posCmd.time);
+						//DEBUGOUT("%d idle new cmd p%d t%d ->constSpeedTimeCtrl\r\n", mi, posCmd.posImp, posCmd.time);
 						pMd->state = constSpeedTimeCtrl;
 						calcMoveParams(pMd, getPos(mi), &posCmd);
 						//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
 
 					}
 					else{
-						DEBUGOUT("fill with custom2\r\n");
-						fillCustom2();
+						//DEBUGOUT("fill with custom2\r\n");
+						//fillCustom2();
 					}
 
 //				}
@@ -177,10 +177,19 @@ void vUartctrl(void *pvParameters)
 				break;
 
 			case goDown:
+				pos = getPos(mi);
 				//DEBUGOUT("goDown \r\n");
-				motorSetDiv(mi, SYS_CLOCK/1000);
-				motorSetDir(mi, DIR_DOWN);
-				motorEnable(mi);
+				//if(impToMm(pos) > 20){
+					motorSetDiv(mi, SYS_CLOCK/1000);
+					motorSetDir(mi, DIR_DOWN);
+					motorEnable(mi);
+				//}
+//				else{
+//					motorSetDiv(mi, div);
+//					motorSetDir(mi, pMd->dir);
+//					motorDisable(mi);
+//					pMd->state = idle;
+//				}
 				break;
 
 			case period:
@@ -384,7 +393,7 @@ void vUartctrl(void *pvParameters)
 			uint16_t m = sTot/60;
 			uint16_t sCur = (t-(m*60*1000))/1000;
 
-			DEBUGOUT("it %02d%02d %x  ", m, sCur, itCnt);
+			DEBUGOUT("%02d%02d %x  ", m, sCur, itCnt);
 
 			for(int i=0; i<MOTOR_COUNT; i++){
 				int32_t pos = getPos(i);
@@ -504,7 +513,7 @@ void vUartctrl(void *pvParameters)
 					if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
 						RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
 						//DEBUGOUT("cmdOk\r\n");
-						DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
+						//DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
 					}
 					else{
 						DEBUGOUT("Fifo full!\r\n");
