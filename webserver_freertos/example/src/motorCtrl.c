@@ -132,6 +132,13 @@ void vUartctrl(void *pvParameters)
 //		}
 		//DEBUGOUT("main \r\n");
 		for(int mi=0; mi<MOTOR_COUNT; mi++){
+			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
+				bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
+				DEBUGOUT("but 2[10] det -> go down state\r\n");
+					mst[mi].state = goDown;
+			}
+		}
+		for(int mi=0; mi<MOTOR_COUNT; mi++){
 
 			//DEBUGOUT("proc %d \r\n", mi);
 			pMd = &(mst[mi]);
@@ -141,20 +148,7 @@ void vUartctrl(void *pvParameters)
 				DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
 			}
 			//DEBUGOUT("proc 2 %d \r\n", mi);
-			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
-				bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
-				DEBUGOUT("but 2[10] det -> go down state\r\n");
 
-
-				//if(mi == 0){
-					//mst[mi].state =seekKonc;
-				//}
-				//else{
-					mst[mi].state = goDown;
-
-				//}
-
-			}
 			//DEBUGOUT("start switch \r\n");
 			switch(pMd->state){
 			case idle:
@@ -347,7 +341,7 @@ void vUartctrl(void *pvParameters)
 						((pMd->dir == DIR_STOP)&&bTimeReached)
 					){
 						if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-							//DEBUGOUT("%d constSpeed new cmd p%d t%d cmdrb:%d \r\n", mi, posCmd.posImp, posCmd.time, RingBuffer_GetCount(&(posCmdRB[mi])));
+							DEBUGOUT("%d constSpeed new cmd p%d cmdrb:%d \r\n", mi, posCmd.posImp, RingBuffer_GetCount(&(posCmdRB[mi])));
 							pMd->state = constSpeedTimeCtrl;
 							calcMoveParams(pMd, getPos(mi), &posCmd);
 						}
