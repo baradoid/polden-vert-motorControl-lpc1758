@@ -126,18 +126,22 @@ bool getKoncState(uint8_t mNum)
 {
 	bool ret = false;
 	switch(mNum){
-		case 0:
-			ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
-			break;
+		case 0: ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 1); break;
 		//case 1:
 			//ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 2);
 			//break;
+		//case 3: ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 2); break;
+		case 5: ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 7); break;
+		case 6: ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 4); break;
+		case 7: ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 6); break;
+		case 8: ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 9); break;
+		case 9: ret = !Chip_GPIO_GetPinState(LPC_GPIO, 2, 8); break;
 		default:
 			ret = true;
 	}
 	//ret = Chip_GPIO_GetPinState(LPC_GPIO, 2, 1);
 
-	ret = true;
+	//ret = true;
 	return ret;
 }
 
@@ -165,7 +169,7 @@ void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *pPosCmd)
 	pMd->startCmdProcessTime = xTaskGetTickCount();
 	//pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  pPosCmd->time +  pPosCmd->time/10; //10%
 	pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  mcContrPeriodms +  mcContrPeriodms/10; //10%
-	DEBUGOUT("move to %d(%d) f %d(%d) d %d IPS %d\r\n", pMd->posZadI, impToMm(pMd->posZadI), pos, impToMm(pos), deltaPos, pMd->speedZadIPS);
+	//DEBUGOUT("move to %d(%d) f %d(%d) d %d IPS %d\r\n", pMd->posZadI, impToMm(pMd->posZadI), pos, impToMm(pos), deltaPos, pMd->speedZadIPS);
 
 }
 

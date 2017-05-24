@@ -78,8 +78,9 @@ void vUartctrl(void *pvParameters)
 		mst[i].cmdEndProcessTime = xTaskGetTickCount()+5000+2000*i;
 		//mst[i].state =goDown;// idle;////seekKonc;/
 		mst[i].bFirstEnter = true;
-		mst[i].state = seekKonc;
+		//mst[i].state = seekKonc;
 		//mst[i].state =goDown;
+		mst[i].state = idle;
 	}
 
 
@@ -126,18 +127,18 @@ void vUartctrl(void *pvParameters)
 		//strcpy(msg, "hello\r\n");
 		//Chip_UART_SendBlocking(LPC_UART0, msg, sizeof(msg));
 
-//		if(gpio2Val != Chip_GPIO_GetPortValue(LPC_GPIO, 2)){
-//			gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
-//			DEBUGOUT("%x\r\n", Chip_GPIO_GetPortValue(LPC_GPIO, 2));
-//		}
-		//DEBUGOUT("main \r\n");
-		for(int mi=0; mi<MOTOR_COUNT; mi++){
-			if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
-				bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
-				DEBUGOUT("but 2[10] det -> go down state\r\n");
-					mst[mi].state = goDown;
-			}
+		if(gpio2Val != Chip_GPIO_GetPortValue(LPC_GPIO, 2)){
+			gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
+			DEBUGOUT("%x\r\n", Chip_GPIO_GetPortValue(LPC_GPIO, 2));
 		}
+		//DEBUGOUT("main \r\n");
+//		if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
+//			bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
+//			for(int mi=0; mi<MOTOR_COUNT; mi++){
+//				DEBUGOUT("but 2[10] det -> go down state\r\n");
+//					//mst[mi].state = goDown;
+//			}
+//		}
 		for(int mi=0; mi<MOTOR_COUNT; mi++){
 
 			//DEBUGOUT("proc %d \r\n", mi);
@@ -341,12 +342,12 @@ void vUartctrl(void *pvParameters)
 						((pMd->dir == DIR_STOP)&&bTimeReached)
 					){
 						if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-							DEBUGOUT("%d constSpeed new cmd p%d cmdrb:%d \r\n", mi, posCmd.posImp, RingBuffer_GetCount(&(posCmdRB[mi])));
+							//DEBUGOUT("%d constSpeed new cmd p%d cmdrb:%d \r\n", mi, posCmd.posImp, RingBuffer_GetCount(&(posCmdRB[mi])));
 							pMd->state = constSpeedTimeCtrl;
 							calcMoveParams(pMd, getPos(mi), &posCmd);
 						}
 						else{
-							DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
+							//DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
 							pMd->state = idle;
 							//pMd->state = seekKonc;
 
@@ -457,6 +458,14 @@ void vUartctrl(void *pvParameters)
 				int32_t posImp = 0;
 				uint16_t velocity = 0; //mm per sec
 				if(inputStr[0] == 'S'){
+					if(inputStr[1] == 'd'){
+						DEBUGOUT("but 2[10] det -> go down state\r\n");
+						for(int mi=0; mi<MOTOR_COUNT; mi++){
+
+							mst[mi].state = goDown;
+						}
+						continue;
+					}
 					motInd = atoi(&(inputStr[1]));
 
 					if(motInd > (MOTOR_COUNT-1)){
