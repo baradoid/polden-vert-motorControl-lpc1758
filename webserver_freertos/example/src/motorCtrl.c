@@ -129,7 +129,7 @@ void vUartctrl(void *pvParameters)
 
 		if(gpio2Val != Chip_GPIO_GetPortValue(LPC_GPIO, 2)){
 			gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
-			DEBUGOUT("%x\r\n", Chip_GPIO_GetPortValue(LPC_GPIO, 2));
+			//DEBUGOUT("%x\r\n", Chip_GPIO_GetPortValue(LPC_GPIO, 2));
 		}
 		//DEBUGOUT("main \r\n");
 //		if(Chip_GPIO_GetPinState(LPC_GPIO, 2, 10) != bootButLaststate){
@@ -144,10 +144,10 @@ void vUartctrl(void *pvParameters)
 			//DEBUGOUT("proc %d \r\n", mi);
 			pMd = &(mst[mi]);
 			bKs = getKoncState(mi);
-			if(bKoncState[mi] != bKs){
-				bKoncState[mi] = bKs;
-				DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
-			}
+//			if(bKoncState[mi] != bKs){
+//				bKoncState[mi] = bKs;
+//				DEBUGOUT("koncState[%d]-> %d\r\n", mi, bKs);
+//			}
 			//DEBUGOUT("proc 2 %d \r\n", mi);
 
 			//DEBUGOUT("start switch \r\n");
@@ -163,7 +163,7 @@ void vUartctrl(void *pvParameters)
 
 					//DEBUGOUT("%d check for cmd\r\n", mi);
 					if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
-						//DEBUGOUT("%d idle new cmd p%d t%d ->constSpeedTimeCtrl\r\n", mi, posCmd.posImp, posCmd.time);
+						//DEBUGOUT("%d idle new cmd p%d ->constSpeedTimeCtrl\r\n", mi, posCmd.posImp);
 						pMd->state = constSpeedTimeCtrl;
 						calcMoveParams(pMd, getPos(mi), &posCmd);
 						//DEBUGOUT("move to %d delta %d speed IPS %d\r\n", mst[mi].posZadI, deltaPos, mst[mi].speedZadIPS);
@@ -222,7 +222,7 @@ void vUartctrl(void *pvParameters)
 
 					int32_t mmPos = impToMm(pos);
 					if(pMd->dir == DIR_UP){
-						if(mmPos > 800){
+						if(mmPos > 500){
 							pMd->dir = DIR_DOWN;
 							div = SYS_CLOCK/1000;
 							//setDiv(mi, MOT_ENA, pMd->dir, div);
@@ -306,7 +306,7 @@ void vUartctrl(void *pvParameters)
 						if(pos!= 65536)
 							break;
 						else{
-							DEBUGOUT("pos 65536!!\r\n");
+							//DEBUGOUT("pos 65536!!\r\n");
 							//motorDisable(mi);
 						}
 					}
@@ -319,28 +319,26 @@ void vUartctrl(void *pvParameters)
 //					else if(pMd->dir==DIR_DOWN)
 //						borderReached = (pos<=pMd->posZadI)
 
-					bool upBorderReached = ((pMd->dir==DIR_UP) && (pos>=pMd->posZadI));
-					bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
-					bool bTimeReached = (xTaskGetTickCount() > pMd->cmdEndProcessTime);
-					if(upBorderReached){
-						//DEBUGOUT("%d upB! %x(%d)\r\n", mi, pos, impToMm(pos));
-					}
-					if(downBorderReached){
-						//DEBUGOUT("%d downB! %x(%d)\r\n", mi, pos, impToMm(pos));
-					}
-					if(bTimeReached){
-						//DEBUGOUT("%d bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", mi, pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&(posCmdRB[mi])));
-
-					}
+					//bool upBorderReached = ((pMd->dir==DIR_UP) && (pos>=pMd->posZadI));
+					//bool downBorderReached = ((pMd->dir==DIR_DOWN) && (pos<=pMd->posZadI));
+					bool bTimeReached = (xTaskGetTickCount() >= pMd->cmdEndProcessTime);
+//					if(upBorderReached){
+//						//DEBUGOUT("%d upB! %x(%d)\r\n", mi, pos, impToMm(pos));
+//					}
+//					if(downBorderReached){
+//						//DEBUGOUT("%d downB! %x(%d)\r\n", mi, pos, impToMm(pos));
+//					}
+//					if(bTimeReached){
+//						//DEBUGOUT("%d bTimeReached and dir=%d ur:%d dr:%d cmdrb:%d\r\n", mi, pMd->dir, upBorderReached, downBorderReached, RingBuffer_GetCount(&(posCmdRB[mi])));
+//
+//					}
 //					if(bTimeReached && (pMd->dir != DIR_STOP) &&(upBorderReached == false) && (downBorderReached == false)){
 //						DEBUGOUT("%d moving error. going to errorState\r\n", mi);
 //						pMd->state = errorState;
 //						break;
 //					}
 
-					if( ((pMd->dir != DIR_STOP)&&(upBorderReached || downBorderReached)) ||
-						((pMd->dir == DIR_STOP)&&bTimeReached)
-					){
+					if(bTimeReached){
 						if(RingBuffer_Pop(&(posCmdRB[mi]), &posCmd)){
 							//DEBUGOUT("%d constSpeed new cmd p%d cmdrb:%d \r\n", mi, posCmd.posImp, RingBuffer_GetCount(&(posCmdRB[mi])));
 							pMd->state = constSpeedTimeCtrl;
@@ -459,12 +457,33 @@ void vUartctrl(void *pvParameters)
 				uint16_t velocity = 0; //mm per sec
 				if(inputStr[0] == 'S'){
 					if(inputStr[1] == 'd'){
-						DEBUGOUT("but 2[10] det -> go down state\r\n");
+						DEBUGOUT("go to godownState\r\n");
 						for(int mi=0; mi<MOTOR_COUNT; mi++){
 
 							mst[mi].state = goDown;
 						}
 						continue;
+					}
+					else if(inputStr[1] == 'i'){
+						DEBUGOUT("go to idle state\r\n");
+						for(int mi=0; mi<MOTOR_COUNT; mi++){
+							mst[mi].state = idle;
+							motorDisable(mi);
+						}
+						continue;
+
+					}
+					else if(inputStr[1] == 'p'){
+						DEBUGOUT("go to period state\r\n");
+						for(int mi=0; mi<MOTOR_COUNT; mi++){
+							mst[i].dir = DIR_UP;
+							mst[i].state =period;// idle;////seekKonc;/
+							mst[i].cmdEndProcessTime = xTaskGetTickCount()+5000+2000*i;
+							//mst[i].state =goDown;// idle;////seekKonc;/
+							mst[i].bFirstEnter = true;
+						}
+						continue;
+
 					}
 					motInd = atoi(&(inputStr[1]));
 

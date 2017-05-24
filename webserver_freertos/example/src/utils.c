@@ -153,12 +153,26 @@ int32_t mmToImp(int32_t mm)
 {
 	return mm*pulsePerMm;
 }
-
+//#define filterNum 10
+//int32_t posArr[filterNum] = {0, 0, 0, 0 , 0, 0, 0, 0, 0 , 0};
 void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *pPosCmd)
 {
+	//for(int i=1; i<filterNum;i++){
+	//	posArr[i] = posArr[i-1];
+	//}
+	//posArr[0] = pos;
+
+	//int32_t avPos=0;
+	//for(int i=0; i<filterNum;i++){
+	//	avPos += posArr[i];
+	//}
+	//avPos/=filterNum;
+	//pos /= 10;
+	//pos *=10;
+
 	pMd->state = constSpeedTimeCtrl;
 	pMd->posZadI = pPosCmd->posImp;
-	int32_t deltaPos = pMd->posZadI - pos;
+	int32_t deltaPos = pMd->posZadI -  pos; //avPos
 	//pMd->speedZadIPS = (abs(deltaPos)*1000)/ pPosCmd->time;
 	pMd->speedZadIPS = (abs(deltaPos)*1000)/ mcContrPeriodms;
 	if(deltaPos == 0)
@@ -168,7 +182,7 @@ void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *pPosCmd)
 
 	pMd->startCmdProcessTime = xTaskGetTickCount();
 	//pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  pPosCmd->time +  pPosCmd->time/10; //10%
-	pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  mcContrPeriodms +  mcContrPeriodms/10; //10%
+	pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  mcContrPeriodms; //10%
 	//DEBUGOUT("move to %d(%d) f %d(%d) d %d IPS %d\r\n", pMd->posZadI, impToMm(pMd->posZadI), pos, impToMm(pos), deltaPos, pMd->speedZadIPS);
 
 }
