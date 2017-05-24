@@ -31,9 +31,10 @@ typedef struct{
 
 typedef struct{
 	int32_t posImp;
-	uint32_t time;
+	//uint32_t time;
 	//uint32_t num;
 } TPosCmd;
+#define mcContrPeriodms 100
 
 #define mmPerRot 10
 #define pulsePerRot 4000

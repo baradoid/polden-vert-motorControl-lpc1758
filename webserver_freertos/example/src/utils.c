@@ -155,14 +155,16 @@ void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *pPosCmd)
 	pMd->state = constSpeedTimeCtrl;
 	pMd->posZadI = pPosCmd->posImp;
 	int32_t deltaPos = pMd->posZadI - pos;
-	pMd->speedZadIPS = (abs(deltaPos)*1000)/ pPosCmd->time;
+	//pMd->speedZadIPS = (abs(deltaPos)*1000)/ pPosCmd->time;
+	pMd->speedZadIPS = (abs(deltaPos)*1000)/ mcContrPeriodms;
 	if(deltaPos == 0)
 		pMd->dir = DIR_STOP;
 	else
 		pMd->dir = deltaPos>0? DIR_UP : DIR_DOWN;
 
 	pMd->startCmdProcessTime = xTaskGetTickCount();
-	pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  pPosCmd->time +  pPosCmd->time/10; //10%
+	//pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  pPosCmd->time +  pPosCmd->time/10; //10%
+	pMd->cmdEndProcessTime = pMd->startCmdProcessTime +  mcContrPeriodms +  mcContrPeriodms/10; //10%
 	//DEBUGOUT("move to %d(%d) f %d(%d) d %d IPS %d\r\n", pMd->posZadI, impToMm(pMd->posZadI), pos, impToMm(pos), deltaPos, pMd->speedZadIPS);
 
 }
@@ -222,7 +224,7 @@ extern RINGBUFF_T posCmdRB[MOTOR_COUNT];
 void fillCustom2()
 {
 	TPosCmd pc;
-	pc.time = 100;
+	//pc.time = 100;
 	for(int i=0; i<MOTOR_COUNT; i++){
 	//	addCmdToRb(1);
 	//	addCmdToRb(2);

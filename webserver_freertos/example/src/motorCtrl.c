@@ -31,7 +31,7 @@
 
 
 /* Transmit and receive ring buffers */
-#define POS_CMD_RB_SIZE 256	/* Receive */
+#define POS_CMD_RB_SIZE 512	/* Receive */
 volatile RINGBUFF_T posCmdRB[MOTOR_COUNT];
 uint8_t posCmdBuff[MOTOR_COUNT*POS_CMD_RB_SIZE*sizeof(TPosCmd)];
 
@@ -99,14 +99,25 @@ void vUartctrl(void *pvParameters)
 	uint32_t div;
 	TPosCmd posCmd;
 
-	pc.time = 4000;
+	//pc.time = 4000;
 
 	for(int i=0; i<MOTOR_COUNT; i++){
 		addCmdToRb(0, i);
 	}
 
 	for(int i=0; i<MOTOR_COUNT; i++){
+		addCmdToRb(2, i);
+		addCmdToRb(4, i);
+		addCmdToRb(6, i);
+		addCmdToRb(8, i);
+		addCmdToRb(10, i);
+		addCmdToRb(12, i);
+		addCmdToRb(14, i);
+		addCmdToRb(16, i);
+		addCmdToRb(18, i);
 		addCmdToRb(20, i);
+
+
 	}
 	uint32_t gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
 	bool bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
@@ -341,7 +352,7 @@ void vUartctrl(void *pvParameters)
 							calcMoveParams(pMd, getPos(mi), &posCmd);
 						}
 						else{
-							//DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
+							DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
 							pMd->state = idle;
 							//pMd->state = seekKonc;
 
@@ -505,18 +516,18 @@ void vUartctrl(void *pvParameters)
 				//DEBUGOUT("\r\n", inputStr);
 				if(bPosInited && bMotNumInited){
 					TPosCmd pc;
-					if(bTimeInited == true)
-						pc.time = time;
-					else
-						pc.time = 100;
+//					if(bTimeInited == true)
+//						pc.time = time;
+//					else
+//						pc.time = 100;
 					pc.posImp = posImp;
 					if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
 						RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
-						//DEBUGOUT("cmdOk\r\n");
+						//DEBUGOUT("ok\r\n");
 						//DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
 					}
 					else{
-						DEBUGOUT("Fifo full!\r\n");
+						DEBUGOUT("ff\r\n");
 					}
 					//DEBUGOUT("putCmd in RB p%d p%d t%d\r\n", pos, pc.posImp, pc.time);
 					//DEBUGOUT("pC %d %d pos:%d t:%d\r\n", RingBuffer_GetCount(&posCmdRB), RingBuffer_GetCount(&uartRxRb),
