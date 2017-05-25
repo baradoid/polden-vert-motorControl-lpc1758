@@ -28,6 +28,7 @@
 #include "lpc_phy.h"/* For the PHY monitor support */
 
 #include "ring_buffer.h"
+#include "utils.h"
 
 
 /* Transmit and receive ring buffers */
@@ -122,6 +123,8 @@ void vUartctrl(void *pvParameters)
 	}
 	uint32_t gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
 	bool bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
+
+	int32_t periodUpBorderMm = 500;
 	for(int i=0; ;i++){
 		//sprintf(msg, "data %d", i);
 		//strcpy(msg, "hello\r\n");
@@ -199,7 +202,7 @@ void vUartctrl(void *pvParameters)
 				break;
 
 			case period:
-				DEBUGOUT("period \r\n");
+				//DEBUGOUT("period \r\n");
 				while(1){   //!!!
 					pos = getPos(mi);
 					if(pos!= 65536)
@@ -222,7 +225,7 @@ void vUartctrl(void *pvParameters)
 
 					int32_t mmPos = impToMm(pos);
 					if(pMd->dir == DIR_UP){
-						if(mmPos > 500){
+						if(mmPos > periodUpBorderMm){
 							pMd->dir = DIR_DOWN;
 							div = SYS_CLOCK/1000;
 							//setDiv(mi, MOT_ENA, pMd->dir, div);
@@ -271,6 +274,62 @@ void vUartctrl(void *pvParameters)
 				}
 
 				break;
+			case goTop:
+				if(pMd->bFirstEnter){
+					DEBUGOUT("%d start goTop\r\n", mi);
+					pMd->bFirstEnter = false;
+				}
+
+				int32_t mmPos = impToMm(pos);
+				if(mmPos > periodUpBorderMm){
+					pMd->dir = DIR_DOWN;
+					div = SYS_CLOCK/1000;
+					//setDiv(mi, MOT_ENA, pMd->dir, div);
+					motorSetDiv(mi, div);
+					motorSetDir(mi, pMd->dir);
+					motorDisable(mi);
+					DEBUGOUT("%d upB! %d\r\n", mi, pos);
+					pMd->state = idle;
+				}
+				else
+				{
+					//pMd->dir = DIR_DOWN;
+					div = SYS_CLOCK/50000;
+					//setDiv(mi, MOT_ENA, pMd->dir, div);
+					motorSetDiv(mi, div);
+					motorSetDir(mi, DIR_UP);
+					motorEnable(mi);
+				}
+				break;
+			case goBottom:
+				if(pMd->bFirstEnter){
+					DEBUGOUT("%d start goBottom\r\n", mi);
+					pMd->bFirstEnter = false;
+				}
+
+				mmPos = impToMm(pos);
+				if(mmPos < 10){
+					pMd->dir = DIR_UP;
+					div = SYS_CLOCK/50000;
+					//setDiv(mi, MOT_ENA, pMd->dir, div);
+					motorSetDiv(mi, div);
+					motorSetDir(mi, pMd->dir);
+					motorDisable(mi);
+					DEBUGOUT("%d downB! %d\r\n", mi, pos);
+					pMd->state = idle;
+
+				}
+				else
+				{
+					//pMd->dir = DIR_DOWN;
+					div = SYS_CLOCK/50000;
+					//setDiv(mi, MOT_ENA, pMd->dir, div);
+					motorSetDiv(mi, div);
+					motorSetDir(mi, DIR_DOWN);
+					motorEnable(mi);
+				}
+				break;
+
 			case seekKonc:
 				//DEBUGOUT("seekKonc \r\n");
 				//bKs = getKoncState(mi);
@@ -471,19 +530,27 @@ void vUartctrl(void *pvParameters)
 							motorDisable(mi);
 						}
 						continue;
-
 					}
 					else if(inputStr[1] == 'p'){
-						DEBUGOUT("go to period state\r\n");
-						for(int mi=0; mi<MOTOR_COUNT; mi++){
+
+						pos = atoi(&(inputStr[2]) );
+						if((pos > 100) && (pos <1000)){
+							periodUpBorderMm = pos;
+						}
+						else{
+
+						}
+
+						DEBUGOUT("go to period state with up border %d\r\n", periodUpBorderMm);
+
+						for(int i=0; i<MOTOR_COUNT; i++){
 							mst[i].dir = DIR_UP;
 							mst[i].state =period;// idle;////seekKonc;/
-							mst[i].cmdEndProcessTime = xTaskGetTickCount()+5000+2000*i;
+							mst[i].cmdEndProcessTime = xTaskGetTickCount()+2000*i;
 							//mst[i].state =goDown;// idle;////seekKonc;/
 							mst[i].bFirstEnter = true;
 						}
 						continue;
-
 					}
 					else if(inputStr[1] == 'r'){
 						DEBUGOUT("reset pos state\r\n");
@@ -491,7 +558,41 @@ void vUartctrl(void *pvParameters)
 							motorPositionReset(mi);
 						}
 						continue;
+					}
+					else if(inputStr[1] == 'n'){
+						int32_t ind = atoi(&(inputStr[2]) );
+						if((ind >=0) && (ind <10)){
+							DEBUGOUT("set one state %d\r\n", ind);
 
+							for(int i=0; i<MOTOR_COUNT; i++){
+								if(i == ind){
+									mst[i].state = goTop;
+								}
+								else{
+									mst[i].state = goBottom;
+								}
+								mst[i].bFirstEnter = true;
+							}
+						}
+						else{
+							DEBUGOUT("set one state param error\r\n");
+						}
+					}
+					else if(inputStr[1] == 'u'){
+						DEBUGOUT("move up\r\n");
+						for(int i=0; i<MOTOR_COUNT; i++){
+							addCmdToRb(2, i);
+							addCmdToRb(4, i);
+							addCmdToRb(6, i);
+							addCmdToRb(8, i);
+							addCmdToRb(10, i);
+							addCmdToRb(12, i);
+							addCmdToRb(14, i);
+							addCmdToRb(16, i);
+							addCmdToRb(18, i);
+							addCmdToRb(20, i);
+						}
+						continue;
 					}
 					motInd = atoi(&(inputStr[1]));
 

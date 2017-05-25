@@ -2,7 +2,7 @@
 #include <stdbool.h>
 typedef enum {
 	idle, errorState, seekKonc, calcParams, speedDeviation, constSpeed, constSpeedTimeCtrl,
-	period, goDown
+	period, goDown, goBottom, goTop
 } TMotorState;
 
 #define SYS_CLOCK 50000000

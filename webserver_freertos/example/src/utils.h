@@ -79,4 +79,6 @@ typedef union{
 }TMotCtrl;
 
 
+int32_t impToMm(int32_t posImp);
+int32_t mmToImp(int32_t mm);
 
