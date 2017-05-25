@@ -485,6 +485,14 @@ void vUartctrl(void *pvParameters)
 						continue;
 
 					}
+					else if(inputStr[1] == 'r'){
+						DEBUGOUT("reset pos state\r\n");
+						for(int mi=0; mi<MOTOR_COUNT; mi++){
+							motorPositionReset(mi);
+						}
+						continue;
+
+					}
 					motInd = atoi(&(inputStr[1]));
 
 					if(motInd > (MOTOR_COUNT-1)){
