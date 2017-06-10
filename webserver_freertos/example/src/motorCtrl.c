@@ -577,6 +577,7 @@ void vUartctrl(void *pvParameters)
 						else{
 							DEBUGOUT("set one state param error\r\n");
 						}
+						continue;
 					}
 					else if(inputStr[1] == 'u'){
 						DEBUGOUT("move up\r\n");
