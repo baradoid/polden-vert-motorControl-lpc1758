@@ -34,6 +34,14 @@ typedef struct{
 	//uint32_t time;
 	//uint32_t num;
 } TPosCmd;
+
+
+typedef struct{
+	int32_t posImp;
+	//uint32_t time;
+	//uint32_t num;
+} TVelCmd;
+
 #define mcContrPeriodms 100
 
 #define mmPerRot 10

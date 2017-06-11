@@ -41,13 +41,14 @@ extern RINGBUFF_T uartRxRb;
 #define addCmdToRb(a, b) pc.posImp = mmToImp(a); RingBuffer_Insert(&(posCmdRB[b]), &pc)
 
 TMotorData mst[MOTOR_COUNT];
+int32_t periodUpBorderMm = 500;
+
 void vUartctrl(void *pvParameters)
 {
 	//bigTest();
 	for(int i=0; i<MOTOR_COUNT; i++){
 		int bufInd = i*POS_CMD_RB_SIZE*sizeof(TPosCmd);
 		RingBuffer_Init(&(posCmdRB[i]), &(posCmdBuff[bufInd]), sizeof(TPosCmd), POS_CMD_RB_SIZE);
-
 	}
 
 	#define recvBufLen 100
@@ -85,7 +86,7 @@ void vUartctrl(void *pvParameters)
 	}
 
 
-	TPosCmd pc;
+
 	TMotorData *pMd;
 //	while(getKoncState(0) == false){;
 //		DEBUGOUT("%d seeking for Konc \r\n", 0);
@@ -100,7 +101,7 @@ void vUartctrl(void *pvParameters)
 	int32_t pos;
 	uint32_t div;
 	TPosCmd posCmd;
-
+	TPosCmd pc;
 	//pc.time = 4000;
 
 	for(int i=0; i<MOTOR_COUNT; i++){
@@ -124,7 +125,7 @@ void vUartctrl(void *pvParameters)
 	uint32_t gpio2Val = Chip_GPIO_GetPortValue(LPC_GPIO, 2);
 	bool bootButLaststate = Chip_GPIO_GetPinState(LPC_GPIO, 2, 10);
 
-	int32_t periodUpBorderMm = 500;
+
 	for(int i=0; ;i++){
 		//sprintf(msg, "data %d", i);
 		//strcpy(msg, "hello\r\n");
@@ -501,173 +502,11 @@ void vUartctrl(void *pvParameters)
 			//prompt = DEBUGIN();
 			inputStr[inputStrInd++] = prompt;
 			if ((prompt == '\n') || (inputStrInd == recvBufLen )){
-				bool bMotNumInited = false;
-				bool bPosInited = false;
-				bool bTimeInited = false;
-				bool bVelocityInited = false;
-
-				uint32_t time;
 				inputStr[inputStrInd] = 0;
-				//DEBUGOUT("string recvd %s", inputStr);
+				DEBUGOUT("string recvd %s", inputStr);
+				parseStr(&(inputStr[0]));
 				inputStrInd = 0;
-				uint8_t motInd = -1;
-				int32_t pos = 0;		//procents*10
-				int32_t posImp = 0;
-				uint16_t velocity = 0; //mm per sec
-				if(inputStr[0] == 'S'){
-					if(inputStr[1] == 'd'){
-						DEBUGOUT("go to godownState\r\n");
-						for(int mi=0; mi<MOTOR_COUNT; mi++){
 
-							mst[mi].state = goDown;
-						}
-						continue;
-					}
-					else if(inputStr[1] == 'i'){
-						DEBUGOUT("go to idle state\r\n");
-						for(int mi=0; mi<MOTOR_COUNT; mi++){
-							mst[mi].state = idle;
-							motorDisable(mi);
-						}
-						continue;
-					}
-					else if(inputStr[1] == 'p'){
-
-						pos = atoi(&(inputStr[2]) );
-						if((pos > 100) && (pos <1000)){
-							periodUpBorderMm = pos;
-						}
-						else{
-
-						}
-
-						DEBUGOUT("go to period state with up border %d\r\n", periodUpBorderMm);
-
-						for(int i=0; i<MOTOR_COUNT; i++){
-							mst[i].dir = DIR_UP;
-							mst[i].state =period;// idle;////seekKonc;/
-							mst[i].cmdEndProcessTime = xTaskGetTickCount()+2000*i;
-							//mst[i].state =goDown;// idle;////seekKonc;/
-							mst[i].bFirstEnter = true;
-						}
-						continue;
-					}
-					else if(inputStr[1] == 'r'){
-						DEBUGOUT("reset pos state\r\n");
-						for(int mi=0; mi<MOTOR_COUNT; mi++){
-							motorPositionReset(mi);
-						}
-						continue;
-					}
-					else if(inputStr[1] == 'n'){
-						int32_t ind = atoi(&(inputStr[2]) );
-						if((ind >=0) && (ind <10)){
-							DEBUGOUT("set one state %d\r\n", ind);
-
-							for(int i=0; i<MOTOR_COUNT; i++){
-								if(i == ind){
-									mst[i].state = goTop;
-								}
-								else{
-									mst[i].state = goBottom;
-								}
-								mst[i].bFirstEnter = true;
-							}
-						}
-						else{
-							DEBUGOUT("set one state param error\r\n");
-						}
-						continue;
-					}
-					else if(inputStr[1] == 'u'){
-						DEBUGOUT("move up\r\n");
-						for(int i=0; i<MOTOR_COUNT; i++){
-							addCmdToRb(2, i);
-							addCmdToRb(4, i);
-							addCmdToRb(6, i);
-							addCmdToRb(8, i);
-							addCmdToRb(10, i);
-							addCmdToRb(12, i);
-							addCmdToRb(14, i);
-							addCmdToRb(16, i);
-							addCmdToRb(18, i);
-							addCmdToRb(20, i);
-						}
-						continue;
-					}
-					motInd = atoi(&(inputStr[1]));
-
-					if(motInd > (MOTOR_COUNT-1)){
-					//if(!((motNum>=0) && (motNum<10))){
-						motInd = -1;
-						bMotNumInited = false;
-
-					//}
-					}
-					else{
-						bMotNumInited = true;
-					}
-					//DEBUGOUT("mn %x \r\n", motInd);
-				}
-				char *p = strchr(inputStr, 'p');
-				if(p != NULL){
-					p++;
-					pos = atoi(p);
-					if((pos>=0)&& (pos<=1000) && bMotNumInited){
-//						if(pos != mst[motInd].posZadI){
-//
-//							//mst[motNum].posZadI=((pos*maxHeightImp)/1000);
-//							//posImp=((pos*maxHeightImp)/1000);
-							posImp = mmToImp(pos);
-//							//DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
-							bPosInited = true;
-//						}
-					}
-					//DEBUGOUT("mn %x p%d \r\n", motInd, pos);
-				}
-				p = strchr(inputStr, 'v');
-				if(p != NULL){
-					p++;
-					velocity = atoi(p);
-					if((velocity>=100)&& (velocity<=4000) && bMotNumInited){
-						mst[motInd].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
-						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
-						bVelocityInited = true;
-					}
-				}
-				p = strchr(inputStr, 't');
-				if(p != NULL){
-					p++;
-					time = atoi(p);
-					if((time>0)&& (time<4000) && bMotNumInited){
-						mst[motInd].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
-						//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
-						bTimeInited = true;
-					}
-				}
-				//DEBUGOUT("\r\n", inputStr);
-				if(bPosInited && bMotNumInited){
-					TPosCmd pc;
-//					if(bTimeInited == true)
-//						pc.time = time;
-//					else
-//						pc.time = 100;
-					pc.posImp = posImp;
-					if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
-						RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
-						//DEBUGOUT("ok\r\n");
-						//DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
-					}
-					else{
-						DEBUGOUT("ff\r\n");
-					}
-					//DEBUGOUT("putCmd in RB p%d p%d t%d\r\n", pos, pc.posImp, pc.time);
-					//DEBUGOUT("pC %d %d pos:%d t:%d\r\n", RingBuffer_GetCount(&posCmdRB), RingBuffer_GetCount(&uartRxRb),
-					//									pos, time);
-				}
-				else{
-
-				}
 			}
 		}
 
@@ -678,6 +517,227 @@ void vUartctrl(void *pvParameters)
 	DEBUGOUT("exit\r\n");
 }
 
+void parsePosCmd(int motInd, char *p)
+{
+	int32_t pos = atoi(p); //procents*10
+	if((pos>=0)&& (pos<=1000)){
+//						if(pos != mst[motInd].posZadI){
+//
+//							//mst[motNum].posZadI=((pos*maxHeightImp)/1000);
+//							//posImp=((pos*maxHeightImp)/1000);
+		int32_t posImp = mmToImp(pos);
+//							//DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
+//						}
+		TPosCmd pc;
+		pc.posImp = posImp;
+		if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
+			RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
+			//DEBUGOUT("ok\r\n");
+			DEBUGOUT("%d->p %d  pI %d \r\n", motInd, pos, pc.posImp);
+		}
+		else{
+			DEBUGOUT("ff\r\n");
+		}
+
+	}
+	//DEBUGOUT("mn %x p%d \r\n", motInd, pos);
+
+}
+
+void parseStr(char *inputStr)
+{
+	if(strlen(inputStr) == 42){
+		bool gridStrOk = true;
+		for(int i=0; i<10; i++){
+			if(inputStr[i*4] != 'p'){
+				gridStrOk = false;
+			}
+		}
+		if(gridStrOk){
+			//DEBUGOUT("grid str OK!\r\n");
+			for(int i=0; i<10; i++){
+				parsePosCmd(i, &(inputStr[i*4+1]));
+			}
+
+		}
+		else{
+			DEBUGOUT("grid str FAIL!\r\n");
+			return;
+		}
+	}
+	else{
+
+	}
+	return;
+	bool bMotNumInited = false;
+	bool bPosInited = false;
+	bool bTimeInited = false;
+	bool bVelocityInited = false;
+	uint32_t time;
+	TPosCmd pc;
+
+	uint8_t motInd = -1;
+	int32_t pos = 0;		//procents*10
+	int32_t posImp = 0;
+	uint16_t velocity = 0; //mm per sec
+	if(inputStr[0] == 'S'){
+		if(inputStr[1] == 'd'){
+			DEBUGOUT("go to godownState\r\n");
+			for(int mi=0; mi<MOTOR_COUNT; mi++){
+
+				mst[mi].state = goDown;
+			}
+			return;
+		}
+		else if(inputStr[1] == 'i'){
+			DEBUGOUT("go to idle state\r\n");
+			for(int mi=0; mi<MOTOR_COUNT; mi++){
+				mst[mi].state = idle;
+				motorDisable(mi);
+			}
+			return;
+		}
+		else if(inputStr[1] == 'p'){
+
+			pos = atoi(&(inputStr[2]) );
+			if((pos > 100) && (pos <1000)){
+				periodUpBorderMm = pos;
+			}
+			else{
+
+			}
+
+			DEBUGOUT("go to period state with up border %d\r\n", periodUpBorderMm);
+
+			for(int i=0; i<MOTOR_COUNT; i++){
+				mst[i].dir = DIR_UP;
+				mst[i].state =period;// idle;////seekKonc;/
+				mst[i].cmdEndProcessTime = xTaskGetTickCount()+2000*i;
+				//mst[i].state =goDown;// idle;////seekKonc;/
+				mst[i].bFirstEnter = true;
+			}
+			return;
+		}
+		else if(inputStr[1] == 'r'){
+			DEBUGOUT("reset pos state\r\n");
+			for(int mi=0; mi<MOTOR_COUNT; mi++){
+				motorPositionReset(mi);
+			}
+			return;
+		}
+		else if(inputStr[1] == 'n'){
+			int32_t ind = atoi(&(inputStr[2]) );
+			if((ind >=0) && (ind <10)){
+				DEBUGOUT("set one state %d\r\n", ind);
+
+				for(int i=0; i<MOTOR_COUNT; i++){
+					if(i == ind){
+						mst[i].state = goTop;
+					}
+					else{
+						mst[i].state = goBottom;
+					}
+					mst[i].bFirstEnter = true;
+				}
+			}
+			else{
+				DEBUGOUT("set one state param error\r\n");
+			}
+			return;
+		}
+		else if(inputStr[1] == 'u'){
+			DEBUGOUT("move up\r\n");
+			for(int i=0; i<MOTOR_COUNT; i++){
+				addCmdToRb(2, i);
+				addCmdToRb(4, i);
+				addCmdToRb(6, i);
+				addCmdToRb(8, i);
+				addCmdToRb(10, i);
+				addCmdToRb(12, i);
+				addCmdToRb(14, i);
+				addCmdToRb(16, i);
+				addCmdToRb(18, i);
+				addCmdToRb(20, i);
+			}
+			return;
+		}
+		motInd = atoi(&(inputStr[1]));
+
+		if(motInd > (MOTOR_COUNT-1)){
+		//if(!((motNum>=0) && (motNum<10))){
+			motInd = -1;
+			bMotNumInited = false;
+
+		//}
+		}
+		else{
+			bMotNumInited = true;
+		}
+		//DEBUGOUT("mn %x \r\n", motInd);
+	}
+	char *p = strchr(inputStr, 'p');
+	if(p != NULL){
+		p++;
+		pos = atoi(p);
+		if((pos>=0)&& (pos<=1000) && bMotNumInited){
+//						if(pos != mst[motInd].posZadI){
+//
+//							//mst[motNum].posZadI=((pos*maxHeightImp)/1000);
+//							//posImp=((pos*maxHeightImp)/1000);
+				posImp = mmToImp(pos);
+//							//DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
+				bPosInited = true;
+//						}
+		}
+		//DEBUGOUT("mn %x p%d \r\n", motInd, pos);
+	}
+	p = strchr(inputStr, 'v');
+	if(p != NULL){
+		p++;
+		velocity = atoi(p);
+		if((velocity>=100)&& (velocity<=4000) && bMotNumInited){
+			mst[motInd].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
+			//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
+			bVelocityInited = true;
+		}
+	}
+	p = strchr(inputStr, 't');
+	if(p != NULL){
+		p++;
+		time = atoi(p);
+		if((time>0)&& (time<4000) && bMotNumInited){
+			mst[motInd].speedMaxIPS = ((velocity*pulsePerRot*10)/100)/mmPerRot;
+			//DEBUGOUT("vel %x %x div=%x\r\n", velocity, mst[motNum].speedMaxIPS,  SYS_CLOCK/mst[motNum].speedMaxIPS);
+			bTimeInited = true;
+		}
+	}
+	//DEBUGOUT("\r\n", inputStr);
+	if(bPosInited && bMotNumInited){
+		TPosCmd pc;
+//					if(bTimeInited == true)
+//						pc.time = time;
+//					else
+//						pc.time = 100;
+		pc.posImp = posImp;
+		if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
+			RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
+			//DEBUGOUT("ok\r\n");
+			//DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
+		}
+		else{
+			DEBUGOUT("ff\r\n");
+		}
+		//DEBUGOUT("putCmd in RB p%d p%d t%d\r\n", pos, pc.posImp, pc.time);
+		//DEBUGOUT("pC %d %d pos:%d t:%d\r\n", RingBuffer_GetCount(&posCmdRB), RingBuffer_GetCount(&uartRxRb),
+		//									pos, time);
+	}
+	else{
+
+	}
+
+
+
+}
 
 //static void vCPLDctrl(void *pvParameters)
 //{
