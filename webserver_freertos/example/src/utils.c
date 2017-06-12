@@ -155,7 +155,7 @@ int32_t mmToImp(int32_t mm)
 }
 //#define filterNum 10
 //int32_t posArr[filterNum] = {0, 0, 0, 0 , 0, 0, 0, 0, 0 , 0};
-void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *pPosCmd)
+void calcMoveParams(TMotorData *pMd, int32_t pos, TMoveCmd *pPosCmd)
 {
 	//for(int i=1; i<filterNum;i++){
 	//	posArr[i] = posArr[i-1];
@@ -171,7 +171,7 @@ void calcMoveParams(TMotorData *pMd, int32_t pos, TPosCmd *pPosCmd)
 	//pos *=10;
 
 	pMd->state = constSpeedTimeCtrl;
-	pMd->posZadI = pPosCmd->posImp;
+	//pMd->posZadI = pPosCmd->posImp; !!!
 	int32_t deltaPos = pMd->posZadI -  pos; //avPos
 	//pMd->speedZadIPS = (abs(deltaPos)*1000)/ pPosCmd->time;
 	pMd->speedZadIPS = (abs(deltaPos)*1000)/ mcContrPeriodms;
@@ -237,11 +237,10 @@ void bigTest()
 	}
 }
 extern RINGBUFF_T posCmdRB[MOTOR_COUNT];
-#define addCmdToRb(a, b) pc.posImp = mmToImp(a); RingBuffer_Insert(&(posCmdRB[b]), &pc)
 
 void fillCustom2()
 {
-	TPosCmd pc;
+	TMoveCmd mc;
 	//pc.time = 100;
 	for(int i=0; i<MOTOR_COUNT; i++){
 	//	addCmdToRb(1);

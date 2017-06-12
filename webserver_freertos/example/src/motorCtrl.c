@@ -34,11 +34,11 @@
 /* Transmit and receive ring buffers */
 #define POS_CMD_RB_SIZE 512	/* Receive */
 volatile RINGBUFF_T posCmdRB[MOTOR_COUNT];
-uint8_t posCmdBuff[MOTOR_COUNT*POS_CMD_RB_SIZE*sizeof(TPosCmd)];
+uint8_t posCmdBuff[MOTOR_COUNT*POS_CMD_RB_SIZE*sizeof(TMoveCmd)];
 
 extern RINGBUFF_T uartRxRb;
 
-#define addCmdToRb(a, b) pc.posImp = mmToImp(a); RingBuffer_Insert(&(posCmdRB[b]), &pc)
+
 
 TMotorData mst[MOTOR_COUNT];
 int32_t periodUpBorderMm = 500;
@@ -47,8 +47,8 @@ void vUartctrl(void *pvParameters)
 {
 	//bigTest();
 	for(int i=0; i<MOTOR_COUNT; i++){
-		int bufInd = i*POS_CMD_RB_SIZE*sizeof(TPosCmd);
-		RingBuffer_Init(&(posCmdRB[i]), &(posCmdBuff[bufInd]), sizeof(TPosCmd), POS_CMD_RB_SIZE);
+		int bufInd = i*POS_CMD_RB_SIZE*sizeof(TMoveCmd);
+		RingBuffer_Init(&(posCmdRB[i]), &(posCmdBuff[bufInd]), sizeof(TMoveCmd), POS_CMD_RB_SIZE);
 	}
 
 	#define recvBufLen 100
@@ -100,8 +100,8 @@ void vUartctrl(void *pvParameters)
 	bool bKs;
 	int32_t pos;
 	uint32_t div;
-	TPosCmd posCmd;
-	TPosCmd pc;
+	TMoveCmd posCmd;
+	TMoveCmd mc;
 	//pc.time = 4000;
 
 	for(int i=0; i<MOTOR_COUNT; i++){
@@ -517,23 +517,39 @@ void vUartctrl(void *pvParameters)
 	DEBUGOUT("exit\r\n");
 }
 
+uint32_t lastPos[10] = {0,0,0,0,0,0,0,0,0,0};
 void parsePosCmd(int motInd, char *p)
 {
 	int32_t pos = atoi(p); //procents*10
-	if((pos>=0)&& (pos<=1000)){
+	if((pos>=0)&& (pos<1000)){
 //						if(pos != mst[motInd].posZadI){
 //
 //							//mst[motNum].posZadI=((pos*maxHeightImp)/1000);
 //							//posImp=((pos*maxHeightImp)/1000);
-		int32_t posImp = mmToImp(pos);
+
 //							//DEBUGOUT("-- SET vcur %d pos %x pz %x vmax %d \r\n", mst[motNum].speedCurIPS, pos, mst[motNum].posZadI, mst[motNum].speedMaxIPS );
 //						}
-		TPosCmd pc;
-		pc.posImp = posImp;
+		TMoveCmd mc;
+
+		int32_t posImp = mmToImp(pos);
+		int32_t deltaPos = posImp - lastPos[motInd];
+		lastPos[motInd] = posImp;
+		uint32_t speedZadIPS = (abs(deltaPos)*1000)/ mcContrPeriodms;
+
+
+		if(deltaPos == 0){
+			mc.dir = DIR_STOP;
+			mc.div = 0x186a;
+		}
+		else{
+			mc.dir = deltaPos>0? DIR_UP : DIR_DOWN;
+			mc.div = SYS_CLOCK/speedZadIPS;
+		}
+
 		if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
-			RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
+			RingBuffer_Insert(&(posCmdRB[motInd]), &mc);
 			//DEBUGOUT("ok\r\n");
-			DEBUGOUT("%d->p %d  pI %d \r\n", motInd, pos, pc.posImp);
+			DEBUGOUT("%d->p %d v %d d %x\r\n", motInd, pos, speedZadIPS, mc.div);
 		}
 		else{
 			DEBUGOUT("ff\r\n");
@@ -569,12 +585,13 @@ void parseStr(char *inputStr)
 
 	}
 	return;
+
 	bool bMotNumInited = false;
 	bool bPosInited = false;
 	bool bTimeInited = false;
 	bool bVelocityInited = false;
 	uint32_t time;
-	TPosCmd pc;
+	TMoveCmd mc;
 
 	uint8_t motInd = -1;
 	int32_t pos = 0;		//procents*10
@@ -713,14 +730,14 @@ void parseStr(char *inputStr)
 	}
 	//DEBUGOUT("\r\n", inputStr);
 	if(bPosInited && bMotNumInited){
-		TPosCmd pc;
+		TMoveCmd mc;
 //					if(bTimeInited == true)
 //						pc.time = time;
 //					else
 //						pc.time = 100;
-		pc.posImp = posImp;
+		//mc.posImp = posImp; !!!
 		if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
-			RingBuffer_Insert(&(posCmdRB[motInd]), &pc);
+			RingBuffer_Insert(&(posCmdRB[motInd]), &mc);
 			//DEBUGOUT("ok\r\n");
 			//DEBUGOUT("%d->p %d  pI \r\n", motInd, pos, pc.posImp);
 		}

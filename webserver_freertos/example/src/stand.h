@@ -30,17 +30,21 @@ typedef struct{
 } TMotorData;
 
 typedef struct{
-	int32_t posImp;
+	//int32_t posImp;
+	uint16_t div;
+	uint8_t dir;
 	//uint32_t time;
 	//uint32_t num;
-} TPosCmd;
+} TMoveCmd;
 
 
-typedef struct{
-	int32_t posImp;
-	//uint32_t time;
-	//uint32_t num;
-} TVelCmd;
+//typedef struct{
+//	//int32_t posImp;
+//	uint16_t div;
+//	uint8_t dir;
+//	//uint32_t time;
+//	//uint32_t num;
+//} TVelCmd;
 
 #define mcContrPeriodms 100
 
