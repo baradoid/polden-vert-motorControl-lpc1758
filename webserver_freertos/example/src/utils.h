@@ -82,7 +82,6 @@ typedef union{
 int32_t impToMm(int32_t posImp);
 int32_t mmToImp(int32_t mm);
 
-void parseStr(char *inputStr);
 
 //#define addCmdToRb(a, b) mc.posImp = mmToImp(a); RingBuffer_Insert(&(posCmdRB[b]), &mc)
 #define addCmdToRb(a, b)

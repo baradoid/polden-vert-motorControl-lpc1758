@@ -32,7 +32,7 @@
 
 
 /* Transmit and receive ring buffers */
-#define POS_CMD_RB_SIZE 256	/* Receive */
+#define POS_CMD_RB_SIZE 512	/* Receive */
 volatile RINGBUFF_T posCmdRB[MOTOR_COUNT];
 uint8_t posCmdBuff[MOTOR_COUNT*POS_CMD_RB_SIZE*sizeof(TMoveCmd)];
 
@@ -43,6 +43,7 @@ extern RINGBUFF_T uartRxRb;
 TMotorData mst[MOTOR_COUNT];
 int32_t periodUpBorderMm = 500;
 void motorCtrlPoll();
+void parseStr(char *inputStr, int32_t *curCmdInd);
 void vUartctrl(void *pvParameters)
 {
 	//bigTest();
@@ -51,11 +52,13 @@ void vUartctrl(void *pvParameters)
 		RingBuffer_Init(&(posCmdRB[i]), &(posCmdBuff[bufInd]), sizeof(TMoveCmd), POS_CMD_RB_SIZE);
 	}
 
+	uint32_t curCmdInd = 0;
 	#define recvBufLen 100
 	uint8_t inputStrInd=0;
 	char inputStr[recvBufLen];
 
 	uint32_t lastTickVal = 0;
+	uint32_t lastMotorCtrlPollTickVal = 0;
 
 	//uint32_t lastMtcVal = 0;
 	//int divVal = 0x4e2;
@@ -146,7 +149,14 @@ void vUartctrl(void *pvParameters)
 //		}
 
 
-		motorCtrlPoll();
+		if((xTaskGetTickCount() - lastMotorCtrlPollTickVal) >= mcContrPeriodms){
+			lastMotorCtrlPollTickVal = xTaskGetTickCount();
+			if((RingBuffer_IsEmpty(&(posCmdRB[0])) == false) &&
+			   (mst[0].state != seekKonc)){
+				curCmdInd++;
+			}
+			motorCtrlPoll();
+		}
 
 
 		//DEBUGOUT("iter1\r\n");
@@ -160,7 +170,7 @@ void vUartctrl(void *pvParameters)
 			uint16_t m = sTot/60;
 			uint16_t sCur = (t-(m*60*1000))/1000;
 
-			DEBUGOUT("%02d%02d %x  ", m, sCur, itCnt);
+			DEBUGOUT("%02d%02d %x %04x  ", m, sCur, itCnt, curCmdInd);
 
 			for(int i=0; i<MOTOR_COUNT; i++){
 				int32_t pos = getPos(i);
@@ -207,7 +217,7 @@ void vUartctrl(void *pvParameters)
 			if ((prompt == '\n') || (inputStrInd == recvBufLen )){
 				inputStr[inputStrInd] = 0;
 				//DEBUGOUT("string recvd %s", inputStr);
-				parseStr(&(inputStr[0]));
+				parseStr(&(inputStr[0]), &curCmdInd);
 				inputStrInd = 0;
 				break;
 			}
@@ -241,7 +251,8 @@ void parsePosCmd(int motInd, char *p)
 
 		if(deltaPos == 0){
 			mc.dir = DIR_STOP;
-			mc.div = 0x186a;
+			//mc.div = 0x186a;
+			mc.div = 0xffff;
 		}
 		else{
 			mc.dir = deltaPos>0? DIR_UP : DIR_DOWN;
@@ -251,9 +262,9 @@ void parsePosCmd(int motInd, char *p)
 		if(RingBuffer_IsFull(&(posCmdRB[motInd])) == 0){
 			RingBuffer_Insert(&(posCmdRB[motInd]), &mc);
 			//DEBUGOUT("ok\r\n");
-			if(mc.dir != DIR_STOP){
-				DEBUGOUT("%d->p %d v %d d %x:%x\r\n", motInd, pos, speedZadIPS, mc.dir, mc.div);
-			}
+//			if((mc.dir != DIR_STOP) && (motInd==0)){
+//				DEBUGOUT("%d->p %d v %d d %x:%x\r\n", motInd, pos, speedZadIPS, mc.dir, mc.div);
+//			}
 		}
 		else{
 			DEBUGOUT("ff\r\n");
@@ -264,7 +275,7 @@ void parsePosCmd(int motInd, char *p)
 
 }
 
-void parseStr(char *inputStr)
+void parseStr(char *inputStr, int32_t *curCmdInd)
 {
 	int inputStrLen = strlen(inputStr);
 	if(inputStrLen == 42){
@@ -294,6 +305,23 @@ void parseStr(char *inputStr)
 			}
 			return;
 		}
+		else if(strcmp(inputStr, "Sd\r\n") == 0){
+			DEBUGOUT("go to idle state\r\n");
+			for(int mi=0; mi<MOTOR_COUNT; mi++){
+				mst[mi].state = idle;
+				motorDisable(mi);
+			}
+			return;
+		}
+		else if(strcmp(inputStr, "Sr\r\n") == 0){
+			DEBUGOUT("reset pos state\r\n");
+			for(int mi=0; mi<MOTOR_COUNT; mi++){
+				motorPositionReset(mi);
+			}
+			*curCmdInd = 0;
+			return;
+		}
+
 	}
 	return;
 
@@ -467,13 +495,13 @@ void parseStr(char *inputStr)
 
 void motorCtrlPoll()
 {
-	static uint32_t lastTickVal = 0;
-	uint32_t curTickVal = xTaskGetTickCount();
+	//static uint32_t lastTickVal = 0;
+	//uint32_t curTickVal = xTaskGetTickCount();
 
 	TMoveCmd mc;
 
-	if((curTickVal - lastTickVal) >= mcContrPeriodms){
-		lastTickVal = curTickVal;
+	//if((curTickVal - lastTickVal) >= mcContrPeriodms){
+	//	lastTickVal = curTickVal;
 		for(int mi=0; mi<MOTOR_COUNT; mi++){
 			if(mst[mi].state == seekKonc){
 				//setDiv(mi, MOT_ENA, pMd->dir, div);
@@ -484,19 +512,22 @@ void motorCtrlPoll()
 			else{
 				if(RingBuffer_Pop(&(posCmdRB[mi]), &mc)){
 					if(mc.dir == DIR_STOP){
-						//DEBUGOUT("%d cmd STOP rb:%d\r\n", mi, RingBuffer_GetCount(&(posCmdRB[mi])));
+//						if(mi == 0)
+//							DEBUGOUT("%d cmd STOP rb:%d\r\n", mi, RingBuffer_GetCount(&(posCmdRB[mi])));
 						motorSetDiv(mi, 0x186a);
 						motorDisable(mi);
 					}
 					else{
-						DEBUGOUT("%d cmd div:%x rb:%d\r\n", mi, mc.div, RingBuffer_GetCount(&(posCmdRB[mi])));
+//						if(mi == 0)
+//							DEBUGOUT("%d cmd div:%x rb:%d\r\n", mi, mc.div, RingBuffer_GetCount(&(posCmdRB[mi])));
 						motorSetDir(mi, mc.dir);
 						motorSetDiv(mi, mc.div);
 						motorEnable(mi);
 					}
 				}
 				else{
-					//DEBUGOUT("%d constSpeedTimeCtrl no cmd -> idle\r\n",  mi);
+//					if(mi == 0)
+//						DEBUGOUT("%d no cmd -> idle\r\n",  mi);
 					//div = SYS_CLOCK/1000;
 					//setDiv(mi, MOT_DIS, pMd->dir, div);
 					motorDisable(mi);
@@ -507,7 +538,7 @@ void motorCtrlPoll()
 				//DEBUGOUT("%d thats all 2\r\n",  mi);
 			}
 		}
-	}
+	//}
 }
 
 //static void vCPLDctrl(void *pvParameters)
