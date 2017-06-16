@@ -305,7 +305,7 @@ void parseStr(char *inputStr, int32_t *curCmdInd)
 			}
 			return;
 		}
-		else if(strcmp(inputStr, "Sd\r\n") == 0){
+		else if(strcmp(inputStr, "Si\r\n") == 0){
 			DEBUGOUT("go to idle state\r\n");
 			for(int mi=0; mi<MOTOR_COUNT; mi++){
 				mst[mi].state = idle;
